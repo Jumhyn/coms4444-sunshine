@@ -66,21 +66,29 @@ function drawTrailers(ctx, trailers, m) {
         var drawY = (trailer.y / m) * 600;
         //console.log(drawX);
         //console.log(drawY);
-        ctx.beginPath();
-        ctx.fillStyle="blue";
-        ctx.rect(drawX-5, drawY-2.5, 10, 5);
-        ctx.fill();
+        drawTrailer(drawX-7.5, drawY-2.5, ctx);
     }
+}
+
+function drawTrailer(x, y, ctx)
+{
+    ctx.beginPath();
+    ctx.fillStyle="blue";
+    ctx.rect(x, y, 15, 5);
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.fillStyle = "black";
+    ctx.arc(x, y+5, 3, 0, 2*Math.PI);
+    ctx.fill();
 }
 
 function drawTractors(ctx, tractors, m) {
     for (var i = 0; i < tractors.length; i++) {
         var tractor = tractors[i];
-        //console.log(bale);
+        
         var drawX = (tractor.x / m) * 600;
         var drawY = (tractor.y / m) * 600;
-        //console.log(drawX);
-        //console.log(drawY);
         
         if (tractor.dest != null)
         {
@@ -90,23 +98,29 @@ function drawTractors(ctx, tractors, m) {
             var x_end = (tractor.dest.x / m) * 600;
             var y_end = (tractor.dest.y / m) * 600;
             
+            drawX = x_start + (x_end - x_start) * tractor.dest.percent_complete;
+            drawY = y_start + (y_end - y_start) * tractor.dest.percent_complete;
+            
             ctx.strokeStyle="black";
             ctx.lineWidth="1";
-            drawLine(ctx, x_start, y_start, x_end, y_end)
+            drawLine(ctx, drawX, drawY, x_end, y_end);
         }
         
+        if (tractor.trailer) {
+            drawTrailer(drawX-7.5-15, drawY, ctx);
+        }
         
         ctx.beginPath();
         ctx.fillStyle="red";
-        ctx.rect(drawX-5, drawY-5, 10, 10);
+        ctx.rect(drawX-5, drawY-5,10, 5);
+        ctx.rect(drawX-5, drawY, 15, 5);
         ctx.fill();
         
-        if (tractor.trailer) {
-            ctx.beginPath();
-            ctx.fillStyle="blue";
-            ctx.rect(drawX-5-10.0, drawY, 10, 5);
-            ctx.fill();
-        }
+        ctx.beginPath();
+        ctx.fillStyle = "black";
+        ctx.arc(drawX-5, drawY+4, 4, 0, 2*Math.PI);
+        ctx.arc(drawX+10, drawY+5, 3, 0, 2*Math.PI);
+        ctx.fill();
         
         if (tractor.bale) {
             ctx.beginPath();

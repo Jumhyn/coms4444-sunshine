@@ -88,18 +88,25 @@ public class Simulator {
     {
         public MutableTractor tractor;
         public double completionTime;
+        public double startTime;
         public Command command;
         
         public CommandWrapper(MutableTractor tractor, double completionTime, Command command)
         {
             this.tractor = tractor;
             this.completionTime = completionTime;
+            this.startTime = elapsedSeconds;
             this.command = command;
         }
         
         public int compareTo(CommandWrapper other)
         {
             return (new Double(this.completionTime)).compareTo(other.completionTime);
+        }
+        
+        public String toString()
+        {
+            return "COMMAND: Tractor " + this.tractor.id + " " + this.command.getType().name() + (command.getLocation() == null ? " " : " (" + command.getLocation().x + "," + command.getLocation().y + ")") + "- completing at " + this.completionTime;
         }
     }
     
@@ -128,6 +135,7 @@ public class Simulator {
     private static PriorityQueue<CommandWrapper> pendingCommands;
     
     private static double elapsedSeconds = 0.0;
+    private static double timeStep = -1.0;
 
     public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException {
         parseArgs(args);
@@ -168,7 +176,9 @@ public class Simulator {
             {
                 continue;
             }
-            pendingCommands.add(new CommandWrapper(tractor, getDuration(command, tractor), command));
+            CommandWrapper wrapper = new CommandWrapper(tractor, getDuration(command, tractor), command);
+            System.out.println(wrapper.toString());
+            pendingCommands.add(wrapper);
         }
 
         HTTPServer server = null;
@@ -196,26 +206,39 @@ public class Simulator {
                 elapsedSeconds = t;
                 break;
             }
-            CommandWrapper command = pendingCommands.poll();
-            if (command.completionTime > t)
-            {
-                elapsedSeconds = t;
-                break;
+            
+            if (timeStep < 0.0) {
+                elapsedSeconds = pendingCommands.peek().completionTime;
+            } else {
+                elapsedSeconds += timeStep;
             }
-            elapsedSeconds = command.completionTime;
-            handleCompletedCommand(command, command.tractor);
-            if (numBales == 0)
-            {
-                break;
+            while (pendingCommands.peek().completionTime <= elapsedSeconds) {
+                CommandWrapper command = pendingCommands.poll();
+                if (command.completionTime > t)
+                {
+                    elapsedSeconds = t;
+                    break;
+                }
+                handleCompletedCommand(command, command.tractor);
+                if (numBales == 0)
+                {
+                    break;
+                }
+                Command newCommand = player.getCommand(command.tractor);
+                if (newCommand == null)
+                {
+                    continue;
+                }
+                CommandWrapper wrapper = new CommandWrapper(command.tractor, elapsedSeconds + getDuration(newCommand, command.tractor), newCommand);
+                System.out.println(wrapper.toString());
+                pendingCommands.add(wrapper);
             }
-            Command newCommand = player.getCommand(command.tractor);
-            if (newCommand == null)
-            {
-                continue;
-            }
-            pendingCommands.add(new CommandWrapper(command.tractor, elapsedSeconds + getDuration(newCommand, command.tractor), newCommand));
             if (gui) {
                 gui(server, state(fps));
+            }
+            if (numBales == 0 || elapsedSeconds >= t)
+            {
+                break;
             }
         }
         if (numBales == 0)
@@ -225,6 +248,10 @@ public class Simulator {
         else {
             System.out.println("Time's up!");
         }
+        if (gui)
+        {
+            gui(server, state(fps));
+        }
         while (true)
         {
             
@@ -233,6 +260,7 @@ public class Simulator {
     
     private static void handleCompletedCommand(CommandWrapper command, MutableTractor tractor)
     {
+        System.out.println("(COMPLETED) " + command.toString());
         switch (command.command.getType())
         {
             case MOVE_TO:
@@ -414,7 +442,8 @@ public class Simulator {
             {
                 if (c.tractor == tractor && c.command.getLocation() != null)
                 {
-                    json += "{\"x\":" + c.command.getLocation().x + ",\"y\":" + c.command.getLocation().y + "}";
+                    double percentComplete = (c.startTime == elapsedSeconds) ? 0.0 : (elapsedSeconds - c.startTime) / (c.completionTime - c.startTime);
+                    json += "{\"x\":" + c.command.getLocation().x + ",\"y\":" + c.command.getLocation().y + ",\"percent_complete\":" + percentComplete + "}";
                     destNull = false;
                 }
             }
@@ -488,7 +517,7 @@ public class Simulator {
                         }
 
                         if (playerNames.size() != 1) {
-                            throw new IllegalArgumentException("Invalid number of players, you need 2 players to start a game.");
+                            throw new IllegalArgumentException("Invalid number of players, you need 1 player to start a game.");
                         }
 
                         playerName = playerNames.get(0);
@@ -531,6 +560,11 @@ public class Simulator {
                             throw new IllegalArgumentException("Missing random seed.");
                         }
                         seed = Integer.parseInt(args[i]);
+                    } else if (args[i].equals("--time_step")) {
+                        if (++i != args.length) {
+                            timeStep = 1.0;
+                        }
+                        timeStep = Double.parseDouble(args[i]);
                     } else {
                         throw new IllegalArgumentException("Unknown argument '" + args[i] + "'");
                     }
