@@ -1,4 +1,4 @@
-package sunshine.random;
+package sunshine.g6; 
 
 import java.util.List;
 import java.util.Collections;
@@ -18,6 +18,7 @@ public class Player implements sunshine.sim.Player {
     private Random rand;
     
     List<Point> bales;
+    private int mapsize;
 
     public Player() {
         rand = new Random(seed);
@@ -26,6 +27,8 @@ public class Player implements sunshine.sim.Player {
     public void init(List<Point> bales, int n, double m, double t)
     {
         this.bales = bales;
+        mapsize = m * m;
+        
     }
     
     public Command getCommand(Tractor tractor)
