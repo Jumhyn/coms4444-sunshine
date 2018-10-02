@@ -3,7 +3,6 @@ package sunshine.g4;
 import java.util.List;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 import java.util.HashMap;
 
 import sunshine.sim.Command;
@@ -13,21 +12,17 @@ import sunshine.sim.Point;
 
 
 public class Player implements sunshine.sim.Player {
-    // Random seed of 42.
-    private int seed = 42;
-    private Random rand;
-
+    
     List<Point> bales;
 
     public Player() {
-        rand = new Random(seed);
     }
-
+    
     public void init(List<Point> bales, int n, double m, double t)
     {
         this.bales = bales;
     }
-
+    
     public Command getCommand(Tractor tractor)
     {
         if (tractor.getHasBale())
@@ -45,25 +40,14 @@ public class Player implements sunshine.sim.Player {
         {
             if (tractor.getLocation().equals(new Point(0.0, 0.0)))
             {
-                if (rand.nextDouble() > 0.5)
+                if (tractor.getAttachedTrailer() == null && bales.size() > 0)
                 {
-                    if (tractor.getAttachedTrailer() == null)
-                    {
-                        return new Command(CommandType.ATTACH);
-                    }
-                    else
-                    {
-                        return new Command(CommandType.DETATCH);
-                    }
-                }
-                else if (bales.size() > 0)
-                {
-                    Point p = bales.remove(rand.nextInt(bales.size()));
-                    return Command.createMoveCommand(p);
+                    Point p = bales.remove(0);
+                    return Command.createMoveCommand(p);            
                 }
                 else
                 {
-                    return null;
+                    return new Command(CommandType.DETATCH);
                 }
             }
             else
