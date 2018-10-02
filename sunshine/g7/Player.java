@@ -71,6 +71,10 @@ public class Player implements sunshine.sim.Player {
                 //     }
                 // }
                 // else 
+                if (tractor.getAttachedTrailer()!=null){
+                	return new Command(CommandType.DETATCH);
+                }
+                else
                 if (bales.size() > 0)
                 {
                     //Point p = bales.remove(rand.nextInt(bales.size()));
