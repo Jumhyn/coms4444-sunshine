@@ -18,7 +18,7 @@ public class Player implements sunshine.sim.Player {
     private Random rand;
     
     List<Point> bales;
-    private int mapsize;
+    private double mapsize;
 
     public Player() {
         rand = new Random(seed);
@@ -33,6 +33,35 @@ public class Player implements sunshine.sim.Player {
     
     public Command getCommand(Tractor tractor)
     {
+
+        // #################################
+        // # Divide the grid into segments #
+        // #################################
+
+        // currently this is hardcoded to be 16 segments, but will eventually be dynamic and dependent on mapsize
+
+        // Get the min and max x and y coordinates for the bale positions
+        System.out.println("Number of haybales: " + bales.size()); //
+
+        double x_min = Double.POSITIVE_INFINITY;
+        double x_max = -1;
+        double y_min = Double.POSITIVE_INFINITY;
+        double y_max = -1;
+
+        for (Point pos : bales) {
+            if (pos.x < x_min)
+                x_min = pos.x;
+            if (pos.x > x_max)
+                x_max = pos.x;
+            if (pos.y < y_min)
+                y_min = pos.y;
+            if (pos.y > y_max)
+                y_max = pos.y;
+        }
+        System.out.println("x_min: " + x_min + ", y_min: " + y_min + ", x_max: " + x_max + ", y_max: " + y_max);
+
+
+
         if (tractor.getHasBale())
         {
             if (tractor.getLocation().equals(new Point(0.0, 0.0)))
