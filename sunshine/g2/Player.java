@@ -61,6 +61,7 @@ public class Player implements sunshine.sim.Player {
     }
     
     public void init(List<Point> bales, int n, double m, double t)
+
     {
         //for (Point b : bales) {
         //    System.out.println(String.valueOf(b.x) + " " + String.valueOf(b.y));
@@ -70,44 +71,6 @@ public class Player implements sunshine.sim.Player {
 
     
     public Command getCommand(Tractor tractor)
-    {
-        if (tractor.getHasBale())
-        {
-            if (tractor.getLocation().equals(new Point(0.0, 0.0)))
-            {
-                return new Command(CommandType.UNLOAD);
-            }
-            else
-            {
-                return Command.createMoveCommand(new Point(0.0, 0.0));
-            }
-        }
-        else
-        {
-            if (tractor.getLocation().equals(new Point(0.0, 0.0)))
-            {
-                if (tractor.getAttachedTrailer() != null)
-                {
-                    return new Command(CommandType.DETATCH);
-                }
-                else if (bales.size() > 0)
-                {
-                    Point p = bales.remove(rand.nextInt(bales.size()));
-                    return Command.createMoveCommand(p);
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            else
-            {
-                return new Command(CommandType.LOAD);
-            }
-        }
-    }
-}
-    /*
     {
         Integer Id = tractor.getId();
         Point origin = new Point(0.0, 0.0);
@@ -140,6 +103,7 @@ public class Player implements sunshine.sim.Player {
         // hb
         if (tractor.getHasBale())
         {
+            System.out.println("has bale");
             // origin 
             if (tracLoc.equals(origin))
             {
@@ -162,7 +126,6 @@ public class Player implements sunshine.sim.Player {
                     {
                         if (trailer.getNumBales() != 10)
                         {
-                            System.out.println("wut");
                             return new Command(CommandType.STACK);
                         }
                         else
@@ -185,7 +148,7 @@ public class Player implements sunshine.sim.Player {
             // if origin
             if (tracLoc.equals(origin))
             {
-                Integer numBales = tractor.getAttachedTrailer().getNumBales();
+                Integer numBales = trailer.getNumBales();
 
                 // attached
                 if (tractor.getAttachedTrailer() != null)
@@ -250,17 +213,28 @@ public class Player implements sunshine.sim.Player {
                     // if hb loc
                     if (preemptive.equals(tracLoc))
                     {
+                        System.out.println("another load");
+                        System.out.println(preemptive);
+                        preemptive = origin;
                         return new Command(CommandType.LOAD);
                     }
                     else
                     {
-                        Point p = bales.remove(rand.nextInt(bales.size()));
-                        preemptive = p;
-                        System.out.println(p);
-                        return Command.createMoveCommand(p);
+                        if (bales.size() > 0)
+                        {
+                            System.out.println("moving to another");
+                            Point p = bales.remove(rand.nextInt(bales.size()));
+                            preemptive = p;
+                            System.out.println(p);
+                            return Command.createMoveCommand(p);
+                        }
+                        else
+                        {
+                            return null;
+                        }
                     }
                 }
             }
         }
     }
-}*/
+}
