@@ -12,6 +12,8 @@ import sunshine.sim.Tractor;
 import sunshine.sim.CommandType;
 import sunshine.sim.Point;
 
+import sunshine.sim.Trailer;
+
 
 public class Player implements sunshine.sim.Player {
     // Random seed of 42.
@@ -122,9 +124,54 @@ public class Player implements sunshine.sim.Player {
         
     }
     
+    // ##########################
+    // helper function to generate random int
+    // ##########################
+    private static int getRandomNumberInRange(int min, int max) {
+
+        if (min >= max) {
+            throw new IllegalArgumentException("max must be greater than min");
+        }
+
+        Random r = new Random();
+        return r.nextInt((max - min) + 1) + min;
+    }
+
     public Command getCommand(Tractor tractor)
     {
+        System.out.println("tractor has bale? " + tractor.getHasBale());
+        
+        // if tractor is at (0, 0)
+        if (tractor.getLocation().equals(new Point(0.0, 0.0)))
+        {
+            if (tractor.getAttachedTrailer() == null)
+            {
+                return new Command(CommandType.ATTACH);
+            }
+            else if (tractor.getHasBale())
+            {
+                return new Command(CommandType.UNLOAD);
+            }
+            else 
+            {
+                //head towards a random segment
+                Integer randomInt = getRandomNumberInRange(0, midpoints.size() - 1);
+                return Command.createMoveCommand(midpoints.get(randomInt));
+            }
+        }
+        if (tractor.getAttachedTrailer() != null) 
+        {
+            Trailer trailer = tractor.getAttachedTrailer();
 
+            // System.out.println("number of bales:" + trailer.getNumBales());
+
+            // if trailer size > 0, go to (0.0, 0.0)
+            if (trailer.getNumBales() == 10) {
+                return Command.createMoveCommand(new Point(0.0, 0.0));
+            }
+            
+            return new Command(CommandType.DETATCH);
+        }
         if (tractor.getHasBale())
         {
             if (tractor.getLocation().equals(new Point(0.0, 0.0)))
@@ -133,38 +180,83 @@ public class Player implements sunshine.sim.Player {
             }
             else
             {
-                return Command.createMoveCommand(new Point(0.0, 0.0));
-            }
+                // find closest trailer
+                Point currentLocation = tractor.getLocation();
+                double maxDistance = Double.POSITIVE_INFINITY;
+                Point desiredLocation = new Point(0.0, 0.0);
+                
+                System.out.println("VALUES:" + midpoints.values());
+
+                for (Point midpoint : midpoints.values())
+                {
+                    double distance = Math.hypot(midpoint.x - currentLocation.x, midpoint.y - currentLocation.y);
+                    
+                    if (distance == 0 || distance == 1)
+                    {
+                        // if size of trailer < 10, STACK
+                        return new Command(CommandType.STACK);
+                        // else ATTACH
+                    }
+                    if (distance < maxDistance)
+                    {
+                        maxDistance = distance;
+                        desiredLocation = midpoint;
+                    }
+                }
+                return Command.createMoveCommand(desiredLocation);  
+            }  
         }
         else
         {
-            if (tractor.getLocation().equals(new Point(0.0, 0.0)))
-            {
-                if (rand.nextDouble() > 0.5)
-                {
-                    if (tractor.getAttachedTrailer() == null)
-                    {
-                        return new Command(CommandType.ATTACH);
-                    }
-                    else
-                    {
-                        return new Command(CommandType.DETATCH);
-                    }
-                }
-                else if (bales.size() > 0)
-                {
-                    Point p = bales.remove(rand.nextInt(bales.size()));
-                    return Command.createMoveCommand(p);
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            else
-            {
-                return new Command(CommandType.LOAD);
-            }
+            return new Command(CommandType.LOAD);
         }
+
+
+
+        // ORIGINAL GETCOMMAND METHOD
+        // public Command getCommand(Tractor tractor)
+        // {
+        //     if (tractor.getHasBale())
+        //     {
+        //         if (tractor.getLocation().equals(new Point(0.0, 0.0)))
+        //         {
+        //             return new Command(CommandType.UNLOAD);
+        //         }
+        //         else
+        //         {
+        //             return Command.createMoveCommand(new Point(0.0, 0.0));
+        //         }
+        //     }
+        //     else
+        //     {
+        //         if (tractor.getLocation().equals(new Point(0.0, 0.0)))
+        //         {
+        //             if (rand.nextDouble() > 0.5)
+        //             {
+        //                 if (tractor.getAttachedTrailer() == null)
+        //                 {
+        //                     return new Command(CommandType.ATTACH);
+        //                 }
+        //                 else
+        //                 {
+        //                     return new Command(CommandType.DETATCH);
+        //                 }
+        //             }
+        //             else if (bales.size() > 0)
+        //             {
+        //                 Point p = bales.remove(rand.nextInt(bales.size()));
+        //                 return Command.createMoveCommand(p);
+        //             }
+        //             else
+        //             {
+        //                 return null;
+        //             }
+        //         }
+        //         else
+        //         {
+        //             return new Command(CommandType.LOAD);
+        //         }
+        //     }
+        // }
     }
 }
