@@ -272,6 +272,12 @@ public class Simulator {
                 {
                     trailers.add(tractor.attachedTrailer);
                     tractor.attachedTrailer = null;
+                    for (int i=0; i<trailers.size();i++){
+                        System.out.println("--------------------------------");
+                        System.out.println(trailers.get(i).location.x);
+                        System.out.println(trailers.get(i).location.y);
+                        System.out.println("--------------------------------");
+                    }
                 }
                 break;
             case ATTACH: {
