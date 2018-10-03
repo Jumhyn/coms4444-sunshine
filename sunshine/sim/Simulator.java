@@ -229,7 +229,7 @@ public class Simulator {
                 {
                     continue;
                 }
-                CommandWrapper wrapper = new CommandWrapper(command.tractor, elapsedSeconds + getDuration(newCommand, command.tractor), newCommand);
+                CommandWrapper wrapper = new CommandWrapper(command.tractor, command.completionTime + getDuration(newCommand, command.tractor), newCommand);
                 System.out.println(wrapper.toString());
                 pendingCommands.add(wrapper);
             }
@@ -270,6 +270,7 @@ public class Simulator {
             case DETATCH:
                 if (tractor.attachedTrailer != null)
                 {
+                    tractor.attachedTrailer.location = new Point(tractor.location.x, tractor.location.y);
                     trailers.add(tractor.attachedTrailer);
                     tractor.attachedTrailer = null;
                 }
