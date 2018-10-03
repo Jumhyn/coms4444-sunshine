@@ -266,6 +266,9 @@ public class Simulator {
             case MOVE_TO:
                 Point dest = command.command.getLocation();
                 tractor.location = new Point(dest.x, dest.y);
+		        if(tractor.attachedTrailer!=null)
+		         tractor.attachedTrailer.location = new Point(dest.x, dest.y);
+		          MutableTrailer closest_attached = closestTrailer(tractor,false);
                 break;
             case DETATCH:
                 if (tractor.attachedTrailer != null)
@@ -376,6 +379,8 @@ public class Simulator {
     {
         MutableTrailer closest = null;
         double minDist = Double.POSITIVE_INFINITY;
+	if(tractor.attachedTrailer!=null)
+	return tractor.attachedTrailer;
         for (MutableTrailer trailer : trailers)
         {
             double dist = dist(trailer.location, tractor.location);
