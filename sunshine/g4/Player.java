@@ -25,9 +25,9 @@ public class Player implements sunshine.sim.Player {
     private Map<Integer, List<Point>> away_tractor;
     private List<Integer> close_tractor;
     private Map<Integer, Point> trailer_pos;
-    private Map<Integer, Integer> tractor_bays;
+    //private Map<Integer, Integer> tractor_bays;
     
-    private int threshold = 10000;
+    private int threshold = 450;
     private Random rand;
 
     public Player() {
@@ -40,7 +40,7 @@ public class Player implements sunshine.sim.Player {
         
         trailer_pos = new HashMap<Integer, Point>();
         tractor_mode = new HashMap<Integer, Integer>();
-        tractor_bays = new HashMap<Integer, Integer>();
+        //tractor_bays = new HashMap<Integer, Integer>();
     }
     
     public double dist(double x1,double y1,double x2,double y2){
@@ -172,7 +172,7 @@ public class Player implements sunshine.sim.Player {
             if (away_tractor.get(id).size() == 0){
                 trailer_pos.remove(id);
                 tractor_mode.put(id,8);
-                tractor_bays.put(id,10);
+                // tractor_bays.put(id,10);
                 /*System.out.println(String.format("%f = %f",tractor.getLocation().x, tractor.getLocation().y));
                 for (Map.Entry<Integer, Point> pair : trailer_pos.entrySet()) {
                     System.out.println(String.format("%d = %f %f",pair.getKey(), pair.getValue().x, pair.getValue().y));
@@ -195,8 +195,7 @@ public class Player implements sunshine.sim.Player {
                 return new Command(CommandType.UNLOAD);
             }
             else{
-                if (tractor_bays.get(id) == 0){
-                    tractor_bays.remove(id);
+                if (tractor.getAttachedTrailer().getNumBales() == 0){
                     tractor_mode.put(id, 1);
                 }
                 else{
@@ -206,7 +205,6 @@ public class Player implements sunshine.sim.Player {
             }
 
             case 10:
-            tractor_bays.remove(id, tractor_bays.get(id)-1);
             tractor_mode.put(id, 9);
             return new Command(CommandType.UNSTACK);
         }        
