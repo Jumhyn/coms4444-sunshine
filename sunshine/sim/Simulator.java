@@ -276,11 +276,14 @@ public class Simulator {
                 }
                 break;
             case ATTACH: {
-                MutableTrailer closest = closestTrailer(tractor, false);
-                if (closest != null)
+                if (tractor.attachedTrailer == null)
                 {
-                    trailers.remove(closest);
-                    tractor.attachedTrailer = closest;
+                    MutableTrailer closest = closestTrailer(tractor, false);
+                    if (closest != null)
+                    {
+                        trailers.remove(closest);
+                        tractor.attachedTrailer = closest;
+                    }
                 }
                 break;
             }
