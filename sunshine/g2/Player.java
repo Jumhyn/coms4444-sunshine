@@ -21,6 +21,8 @@ public class Player implements sunshine.sim.Player {
     List<Point> bales;
 
     HashMap<Integer, Trailer> pairs = new HashMap<Integer, Trailer>();
+    HashMap<Integer, Point> pairs_locs = new HashMap<Integer, Point>();
+
     List<Trailer> trailers;
     List<Point> trailerLocs;
     Point preemptive;
@@ -69,6 +71,44 @@ public class Player implements sunshine.sim.Player {
     
     public Command getCommand(Tractor tractor)
     {
+        if (tractor.getHasBale())
+        {
+            if (tractor.getLocation().equals(new Point(0.0, 0.0)))
+            {
+                return new Command(CommandType.UNLOAD);
+            }
+            else
+            {
+                return Command.createMoveCommand(new Point(0.0, 0.0));
+            }
+        }
+        else
+        {
+            if (tractor.getLocation().equals(new Point(0.0, 0.0)))
+            {
+                if (tractor.getAttachedTrailer() != null)
+                {
+                    return new Command(CommandType.DETATCH);
+                }
+                else if (bales.size() > 0)
+                {
+                    Point p = bales.remove(rand.nextInt(bales.size()));
+                    return Command.createMoveCommand(p);
+                }
+                else
+                {
+                    return null;
+                }
+            }
+            else
+            {
+                return new Command(CommandType.LOAD);
+            }
+        }
+    }
+}
+    /*
+    {
         Integer Id = tractor.getId();
         Point origin = new Point(0.0, 0.0);
         Point tracLoc = tractor.getLocation();
@@ -79,12 +119,23 @@ public class Player implements sunshine.sim.Player {
         {
             trailer = pairs.get(Id);
             trailerLoc = trailer.getLocation();
+            // Test
+            trailerLoc = pairs_locs.get(Id);
         }
         else
         {
             trailer = tractor.getAttachedTrailer();
             trailerLoc = trailer.getLocation();
+            // Test
+            trailerLoc = tractor.getLocation();
         }
+
+        //Boolean hb = tractor.getHasBale();
+        //Boolean origin = tracLoc.equals(origin);
+        //Boolean attached = tractor.getAttachedTrailer() != null;
+        //Boolean atTrailer = tracLoc.x == trailerLoc.x && tracLoc.y == trailerLoc.y;
+        //Integer numBales = 
+        
 
         // hb
         if (tractor.getHasBale())
@@ -107,10 +158,11 @@ public class Player implements sunshine.sim.Player {
                 else 
                 {
                     // trailer loc
-                    if (trailerLoc == tracLoc)
+                    if (trailerLoc.equals(tracLoc))
                     {
                         if (trailer.getNumBales() != 10)
                         {
+                            System.out.println("wut");
                             return new Command(CommandType.STACK);
                         }
                         else
@@ -150,6 +202,7 @@ public class Player implements sunshine.sim.Player {
                         if (bales.size() > 0)
                         {
                             pairs.put(Id, trailer);
+                            pairs_locs.put(Id, trailer.getLocation());
 
                             // PREEMPTIVE REMOVAL
                             Point p = bales.remove(rand.nextInt(bales.size()));
@@ -188,15 +241,15 @@ public class Player implements sunshine.sim.Player {
                     //trailers.add(tractor.getAttachedTrailer());
                     //trailerLocs.add(tracLoc); 
                     pairs.put(Id, tractor.getAttachedTrailer());
+                    pairs_locs.put(Id, tractor.getLocation());
                     return new Command(CommandType.DETATCH);
                 }
                 // if detached 
                 else
                 {
                     // if hb loc
-                    if (preemptive.x == tracLoc.x && preemptive.y == tracLoc.y)
+                    if (preemptive.equals(tracLoc))
                     {
-                        System.out.println("LOADING");
                         return new Command(CommandType.LOAD);
                     }
                     else
@@ -210,4 +263,4 @@ public class Player implements sunshine.sim.Player {
             }
         }
     }
-}
+}*/
