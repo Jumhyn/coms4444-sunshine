@@ -229,7 +229,7 @@ public class Simulator {
                 {
                     continue;
                 }
-                CommandWrapper wrapper = new CommandWrapper(command.tractor, elapsedSeconds + getDuration(newCommand, command.tractor), newCommand);
+                CommandWrapper wrapper = new CommandWrapper(command.tractor, command.completionTime + getDuration(newCommand, command.tractor), newCommand);
                 System.out.println(wrapper.toString());
                 pendingCommands.add(wrapper);
             }
@@ -270,16 +270,20 @@ public class Simulator {
             case DETATCH:
                 if (tractor.attachedTrailer != null)
                 {
+                    tractor.attachedTrailer.location = new Point(tractor.location.x, tractor.location.y);
                     trailers.add(tractor.attachedTrailer);
                     tractor.attachedTrailer = null;
                 }
                 break;
             case ATTACH: {
-                MutableTrailer closest = closestTrailer(tractor);
-                if (closest != null)
+                if (tractor.attachedTrailer == null)
                 {
-                    trailers.remove(closest);
-                    tractor.attachedTrailer = closest;
+                    MutableTrailer closest = closestTrailer(tractor, false);
+                    if (closest != null)
+                    {
+                        trailers.remove(closest);
+                        tractor.attachedTrailer = closest;
+                    }
                 }
                 break;
             }
@@ -318,21 +322,9 @@ public class Simulator {
                     }
                 }
                 break;
-            case STACK: {
-                MutableTrailer closest = closestTrailer(tractor);
-                if (closest != null)
-                {
-                    if (closest.numBales > 0)
-                    {
-                        closest.numBales--;
-                        tractor.hasBale = true;
-                    }
-                }
-                break;
-            }
-            case UNSTACK:
+            case STACK:
                 if (tractor.hasBale) {
-                    MutableTrailer closest = closestTrailer(tractor);
+                    MutableTrailer closest = closestTrailer(tractor, false);
                     if (closest != null)
                     {
                         if (closest.numBales < 10)
@@ -343,6 +335,18 @@ public class Simulator {
                     }
                 }
                 break;
+            case UNSTACK: {
+                MutableTrailer closest = closestTrailer(tractor, true);
+                if (closest != null)
+                {
+                    if (closest.numBales > 0)
+                    {
+                        closest.numBales--;
+                        tractor.hasBale = true;
+                    }
+                }
+                break;
+            }
         }
     }
     
@@ -372,14 +376,14 @@ public class Simulator {
         return Double.NEGATIVE_INFINITY;
     }
     
-    private static MutableTrailer closestTrailer(MutableTractor tractor)
+    private static MutableTrailer closestTrailer(MutableTractor tractor, boolean needsBales)
     {
         MutableTrailer closest = null;
         double minDist = Double.POSITIVE_INFINITY;
         for (MutableTrailer trailer : trailers)
         {
             double dist = dist(trailer.location, tractor.location);
-            if (dist < 1.0 && dist < minDist)
+            if (dist < 1.0 && dist < minDist && (!needsBales || trailer.numBales > 0))
             {
                 minDist = dist;
                 closest = trailer;
