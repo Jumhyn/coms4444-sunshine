@@ -29,6 +29,10 @@ public class Player implements sunshine.sim.Player {
     public Player() {
         rand = new Random(seed);
     }
+
+    public double dist(double x1,double y1,double x2,double y2){
+        return Math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+    }
     
     public void init(List<Point> bales, int n, double m, double t)
     {
@@ -36,15 +40,28 @@ public class Player implements sunshine.sim.Player {
         //System.out.println("total num_bales = " + bales.size());
         mapsize = m * m;
 
+
+        // #######################################################
+        // # Split bale points according to distance from origin #
+        // #######################################################
+        for (int i=0; i<bales.size(); i++){
+            if (dist(bales.get(i).x,bales.get(i).y,0,0) > 600){
+                farBales.add(bales.get(i));
+            }
+            else{
+                closeBales.add(bales.get(i));
+            }
+        }
+
+        // #################################
+        // # Divide the grid into segments #
+        // #################################
+
         // segments will map the index of each segment to the list of all bale points in that segment
         // segments are numbered along each row first, before moving to the next row
         segments = new HashMap<Integer, ArrayList<Point>>();
         // midpoints will map the index of each segment to a Point object containing the midpoint of that segment
         midpoints = new HashMap<Integer, Point>();
-
-        // #################################
-        // # Divide the grid into segments #
-        // #################################
 
         double seg_rows = 4.0; //
         double seg_cols = 4.0; //
