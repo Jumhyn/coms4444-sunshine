@@ -26,8 +26,6 @@ public class Player implements sunshine.sim.Player {
     private List<Integer> close_tractor;
     private Map<Integer, Point> trailer_pos;
 
-    private Map<Integer, Integer> tractor_bays;
-
     private int threshold = 450;
     private Random rand;
 
@@ -41,7 +39,6 @@ public class Player implements sunshine.sim.Player {
 
         trailer_pos = new HashMap<Integer, Point>();
         tractor_mode = new HashMap<Integer, Integer>();
-        //tractor_bays = new HashMap<Integer, Integer>();
     }
 
     public double dist(double x1, double y1, double x2, double y2) {
@@ -164,17 +161,9 @@ public class Player implements sunshine.sim.Player {
 
             // stack up
             case 7:
-<<<<<<< HEAD
                 if (away_tractor.get(id).size() == 0) {
                     trailer_pos.remove(id);
                     tractor_mode.put(id, 8);
-                    tractor_bays.put(id, 10);
-=======
-            if (away_tractor.get(id).size() == 0){
-                trailer_pos.remove(id);
-                tractor_mode.put(id,8);
-                // tractor_bays.put(id,10);
->>>>>>> 713cd8502f9dc990145c41668a51d3d9992de151
                 /*System.out.println(String.format("%f = %f",tractor.getLocation().x, tractor.getLocation().y));
                 for (Map.Entry<Integer, Point> pair : trailer_pos.entrySet()) {
                     System.out.println(String.format("%d = %f %f",pair.getKey(), pair.getValue().x, pair.getValue().y));
@@ -191,37 +180,24 @@ public class Player implements sunshine.sim.Player {
                 return Command.createMoveCommand(new Point(0, 0));
 
             case 9:
-<<<<<<< HEAD
                 if (close_tractor.contains(id)) {
-=======
-            if (close_tractor.contains(id)){
-                tractor_mode.put(id,1);
-                return new Command(CommandType.UNLOAD);
-            }
-            else{
-                if (tractor.getAttachedTrailer().getNumBales() == 0){
->>>>>>> 713cd8502f9dc990145c41668a51d3d9992de151
                     tractor_mode.put(id, 1);
                     return new Command(CommandType.UNLOAD);
                 } else {
-                    if (tractor_bays.get(id) == 0) {
-                        tractor_bays.remove(id);
+                    if (tractor.getAttachedTrailer().getNumBales() == 0) {
                         tractor_mode.put(id, 1);
                     } else {
                         tractor_mode.put(id, 10);
                     }
                     return new Command(CommandType.UNLOAD);
-                }
 
+                }
             case 10:
-<<<<<<< HEAD
-                tractor_bays.remove(id, tractor_bays.get(id) - 1);
                 tractor_mode.put(id, 9);
                 return new Command(CommandType.UNSTACK);
         }
         return Command.createMoveCommand(new Point(0, 0));
     }
-
 
     /**
      * cluster helper functions
@@ -232,11 +208,5 @@ public class Player implements sunshine.sim.Player {
         List<Point> result = new ArrayList<>();
 //        Collections.sort(bales, (Point p1, Point p2) -> p1.x > p2.y)
         return result;
-=======
-            tractor_mode.put(id, 9);
-            return new Command(CommandType.UNSTACK);
-        }        
-        return Command.createMoveCommand(new Point(0,0));
->>>>>>> 713cd8502f9dc990145c41668a51d3d9992de151
     }
 }
