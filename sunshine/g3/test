@@ -1,0 +1,14 @@
+#/usr/bin/env bash
+
+cd ../../
+
+make compile
+printf "\nSuccessful make!\nResults:\n\n"
+
+
+java sunshine.sim.Simulator \
+    --time_step 1.0 \
+    -t 10000 \
+    --num_tractors 1 \
+    --player g3 \
+    -m 50

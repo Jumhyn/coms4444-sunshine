@@ -2,7 +2,6 @@ package sunshine.g3;
 
 import java.util.List;
 import java.util.Collections;
-import java.util.List;
 import java.util.Random;
 import java.util.HashMap;
 
@@ -126,6 +125,7 @@ public class Player implements sunshine.sim.Player {
         if (!hb && atOrigin && attached && numBales == 0 && areBalesRem)
         {
           // TODO: random
+          //Point p = bales.get(rand.nextInt(bales.size()));
           Point p = bales.remove(rand.nextInt(bales.size()));
           //preemptive = p;
           return Command.createMoveCommand(p);
@@ -140,6 +140,7 @@ public class Player implements sunshine.sim.Player {
         //else if (!hb && !atOrigin && !attached && atBale)
         else if (!hb && atBaleLoc(tracLoc, bales))
         {
+            System.out.println("stuck?");
             //bales.remove(tracLoc);
             return new Command(CommandType.LOAD);
         }
@@ -147,7 +148,7 @@ public class Player implements sunshine.sim.Player {
         {
             // TODO: random
             //Point p = bales.remove(rand.nextInt(bales.size()));
-            Point p = bales.get(rand.nextInt(bales.size()));
+            Point p = bales.remove(rand.nextInt(bales.size()));
             return Command.createMoveCommand(p);
         }
         else if (hb && !atOrigin && !attached && !atTrailer)
