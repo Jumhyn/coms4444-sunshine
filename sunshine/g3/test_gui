@@ -1,5 +1,6 @@
 #/usr/bin/env bash
-#
+
+cd ../..
 make compile
 printf "\nSuccessful make!\nResults:\n\n"
 
