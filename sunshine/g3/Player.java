@@ -25,7 +25,7 @@ public class Player implements sunshine.sim.Player {
 
     List<Trailer> trailers;
     List<Point> trailerLocs;
-    Point preemptive;
+    HashMap<Integer, Point> preemptive = new HashMap<Integer, Point>();
     ////////// End Custom Variables ////////// 
 
     ////////// Custom Functions ////////// 
@@ -109,10 +109,14 @@ public class Player implements sunshine.sim.Player {
             trailerLoc = tractor.getLocation();
         }
 
+        
+
+
         Boolean hb = tractor.getHasBale();
         Boolean atOrigin = tracLoc.equals(origin);
         Boolean attached = tractor.getAttachedTrailer() != null;
         Boolean atTrailer = tracLoc.equals(trailerLoc);
+        Boolean atPreemptive = tracLoc.equals(preemptive.get(Id));
         //Boolean atBale = atBaleLoc(tracLoc, bales);
         Integer numBales = trailer.getNumBales();
         //Integer nextBaleIndex = rand.nextInt(bales.size());
@@ -125,9 +129,8 @@ public class Player implements sunshine.sim.Player {
         if (!hb && atOrigin && attached && numBales == 0 && areBalesRem)
         {
           // TODO: random
-          //Point p = bales.get(rand.nextInt(bales.size()));
           Point p = bales.remove(rand.nextInt(bales.size()));
-          //preemptive = p;
+          preemptive.put(Id, p);
           return Command.createMoveCommand(p);
         }
         else if (!hb && !atOrigin && attached && areBalesRem)
@@ -137,18 +140,19 @@ public class Player implements sunshine.sim.Player {
 
             return new Command(CommandType.DETATCH);
         }
-        //else if (!hb && !atOrigin && !attached && atBale)
-        else if (!hb && atBaleLoc(tracLoc, bales))
+        else if (!hb && !atOrigin && !attached && atPreemptive) //atBaleLoc(tracLoc, bales))
         {
             System.out.println("stuck?");
-            //bales.remove(tracLoc);
+            preemptive.put(Id, new Point(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY));
+            //preemptive = new Point(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
             return new Command(CommandType.LOAD);
+
         }
-        else if (!hb && !atOrigin && !attached && !atBaleLoc(tracLoc, bales) && areBalesRem)
+        else if (!hb && !atOrigin && !attached && areBalesRem)
         {
             // TODO: random
-            //Point p = bales.remove(rand.nextInt(bales.size()));
             Point p = bales.remove(rand.nextInt(bales.size()));
+            preemptive.put(Id, p);
             return Command.createMoveCommand(p);
         }
         else if (hb && !atOrigin && !attached && !atTrailer)
