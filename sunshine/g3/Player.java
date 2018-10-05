@@ -109,10 +109,14 @@ public class Player implements sunshine.sim.Player {
             trailerLoc = tractor.getLocation();
         }
 
+        
+
+
         Boolean hb = tractor.getHasBale();
         Boolean atOrigin = tracLoc.equals(origin);
         Boolean attached = tractor.getAttachedTrailer() != null;
         Boolean atTrailer = tracLoc.equals(trailerLoc);
+        Boolean atPreemptive = tracLoc.equals(preemptive);
         //Boolean atBale = atBaleLoc(tracLoc, bales);
         Integer numBales = trailer.getNumBales();
         //Integer nextBaleIndex = rand.nextInt(bales.size());
@@ -127,6 +131,7 @@ public class Player implements sunshine.sim.Player {
           // TODO: random
           //Point p = bales.get(rand.nextInt(bales.size()));
           Point p = bales.remove(rand.nextInt(bales.size()));
+          preemptive = p;
           //preemptive = p;
           return Command.createMoveCommand(p);
         }
@@ -138,17 +143,20 @@ public class Player implements sunshine.sim.Player {
             return new Command(CommandType.DETATCH);
         }
         //else if (!hb && !atOrigin && !attached && atBale)
-        else if (!hb && atBaleLoc(tracLoc, bales))
+        else if (!hb && !atOrigin && !attached && atPreemptive) //atBaleLoc(tracLoc, bales))
         {
             System.out.println("stuck?");
             //bales.remove(tracLoc);
+            preemptive = new Point(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
             return new Command(CommandType.LOAD);
+
         }
-        else if (!hb && !atOrigin && !attached && !atBaleLoc(tracLoc, bales) && areBalesRem)
+        else if (!hb && !atOrigin && !attached && areBalesRem) // && !atBaleLoc(tracLoc, bales) && areBalesRem)
         {
             // TODO: random
             //Point p = bales.remove(rand.nextInt(bales.size()));
             Point p = bales.remove(rand.nextInt(bales.size()));
+            preemptive = p;
             return Command.createMoveCommand(p);
         }
         else if (hb && !atOrigin && !attached && !atTrailer)
