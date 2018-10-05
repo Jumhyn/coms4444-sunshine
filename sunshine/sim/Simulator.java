@@ -229,7 +229,7 @@ public class Simulator {
                 {
                     continue;
                 }
-                CommandWrapper wrapper = new CommandWrapper(command.tractor, elapsedSeconds + getDuration(newCommand, command.tractor), newCommand);
+                CommandWrapper wrapper = new CommandWrapper(command.tractor, command.completionTime + getDuration(newCommand, command.tractor), newCommand);
                 System.out.println(wrapper.toString());
                 pendingCommands.add(wrapper);
             }
@@ -273,16 +273,20 @@ public class Simulator {
             case DETATCH:
                 if (tractor.attachedTrailer != null)
                 {
+                    tractor.attachedTrailer.location = new Point(tractor.location.x, tractor.location.y);
                     trailers.add(tractor.attachedTrailer);
                     tractor.attachedTrailer = null;
                 }
                 break;
             case ATTACH: {
-                MutableTrailer closest = closestTrailer(tractor, false);
-                if (closest != null)
+                if (tractor.attachedTrailer == null)
                 {
-                    trailers.remove(closest);
-                    tractor.attachedTrailer = closest;
+                    MutableTrailer closest = closestTrailer(tractor, false);
+                    if (closest != null)
+                    {
+                        trailers.remove(closest);
+                        tractor.attachedTrailer = closest;
+                    }
                 }
                 break;
             }
