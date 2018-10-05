@@ -49,7 +49,7 @@ public class Player implements sunshine.sim.Player {
 
     private static Point nearestPoint(Point point, List<Point> pointList) 
     {
-        Point nearestPoint = new Point(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
+        Point nearestPoint = nullPoint;
         Double nearestDist = Double.POSITIVE_INFINITY;
 
         for (Point p: pointList) 
@@ -90,6 +90,7 @@ public class Player implements sunshine.sim.Player {
     {
         Integer Id = tractor.getId();
         Point origin = new Point(0.0, 0.0);
+        Point nullPoint = new Point(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
         Point tracLoc = tractor.getLocation();
         Trailer trailer;
         Point trailerLoc;
@@ -98,29 +99,29 @@ public class Player implements sunshine.sim.Player {
         {
             trailer = pairs.get(Id);
             trailerLoc = trailer.getLocation();
-            // Test
-            trailerLoc = pairs_locs.get(Id);
         }
         else
         {
             trailer = tractor.getAttachedTrailer();
             trailerLoc = trailer.getLocation();
-            // Test
-            trailerLoc = tractor.getLocation();
         }
 
-        
-
+        if (!preemptive.containsKey(Id)) 
+        {
+            preemptive.put(Id, nullPoint);
+        }
 
         Boolean hb = tractor.getHasBale();
         Boolean atOrigin = tracLoc.equals(origin);
         Boolean attached = tractor.getAttachedTrailer() != null;
         Boolean atTrailer = tracLoc.equals(trailerLoc);
         Boolean atPreemptive = tracLoc.equals(preemptive.get(Id));
+        Boolean havePreemptive = !preemptive.get(Id).equals(nullPoint);
         //Boolean atBale = atBaleLoc(tracLoc, bales);
         Integer numBales = trailer.getNumBales();
         //Integer nextBaleIndex = rand.nextInt(bales.size());
         Boolean areBalesRem = bales.size() > 0;
+        areBalesRem = areBalesRem || havePreemptive;
         System.out.println(areBalesRem);
         System.out.println(bales.size());
 
@@ -143,8 +144,7 @@ public class Player implements sunshine.sim.Player {
         else if (!hb && !atOrigin && !attached && atPreemptive) //atBaleLoc(tracLoc, bales))
         {
             System.out.println("stuck?");
-            preemptive.put(Id, new Point(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY));
-            //preemptive = new Point(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
+            preemptive.put(Id, nullPoint);
             return new Command(CommandType.LOAD);
 
         }
@@ -200,7 +200,6 @@ public class Player implements sunshine.sim.Player {
         }
         else if (!atOrigin && !areBalesRem && !attached && atTrailer)
         {
-            System.out.println("stuck?");
             return new Command(CommandType.ATTACH);
         }
         else if (!atOrigin && attached && !areBalesRem)
@@ -209,7 +208,6 @@ public class Player implements sunshine.sim.Player {
         }
         else if (atOrigin && attached && numBales > 0)
         {
-            System.out.println("stuck2?");
             return new Command(CommandType.DETATCH);
         }
         else
@@ -218,146 +216,3 @@ public class Player implements sunshine.sim.Player {
         }
     }
 }
-
-
-        
-/*
-        // hb
-        if (tractor.getHasBale())
-        {
-            System.out.println("has bale");
-            // origin 
-            if (tracLoc.equals(origin))
-            {
-                return new Command(CommandType.UNLOAD);
-            }
-            // not origin
-            else
-            {
-                // attached
-                if (tractor.getAttachedTrailer() != null)
-                {
-                    System.out.println("GOING HOME");
-                    return Command.createMoveCommand(origin);
-                }
-                // detached
-                else 
-                {
-                    // trailer loc
-                    if (trailerLoc.equals(tracLoc))
-                    {
-                        if (trailer.getNumBales() != 10)
-                        {
-                            return new Command(CommandType.STACK);
-                        }
-                        else
-                        {
-                            return new Command(CommandType.ATTACH);
-                        }
-                    }
-                    // not trailer loc
-                    else
-                    {
-                        System.out.println("GOING HOME2");
-                        return Command.createMoveCommand(trailerLoc);
-                    }
-                }
-            }
-        }
-        // if not hb
-        else
-        {
-            // if origin
-            if (tracLoc.equals(origin))
-            {
-                Integer numBales = trailer.getNumBales();
-
-                // attached
-                if (tractor.getAttachedTrailer() != null)
-                {
-                    // trailer full
-                    if (numBales > 0)
-                    {
-                        //Point preemptive;
-                        return new Command(CommandType.DETATCH);
-                    }
-                    else
-                    {
-                        // if more hb's on field
-                        if (bales.size() > 0)
-                        {
-                            pairs.put(Id, trailer);
-                            pairs_locs.put(Id, trailer.getLocation());
-
-                            // PREEMPTIVE REMOVAL
-                            Point p = bales.remove(rand.nextInt(bales.size()));
-                            preemptive = p;
-                            //System.out.println(p);
-                            System.out.println("GOING HOME3");
-                            return Command.createMoveCommand(p);
-                        }
-                        // if no more hb's on field
-                        else
-                        {
-                            return null;
-                        }
-                    }
-                }
-                // detached
-                else
-                {
-                    // trailer "full"
-                    if (numBales > 0)
-                    {
-                        return new Command(CommandType.UNSTACK);
-                    }
-                    else
-                    {
-                        return new Command(CommandType.ATTACH);
-                    }
-                }
-            }
-            // if not origin
-            else
-            {
-                // if attached
-                if (tractor.getAttachedTrailer() != null)
-                {
-                    //trailers.add(tractor.getAttachedTrailer());
-                    //trailerLocs.add(tracLoc); 
-                    pairs.put(Id, tractor.getAttachedTrailer());
-                    pairs_locs.put(Id, tractor.getLocation());
-                    return new Command(CommandType.DETATCH);
-                }
-                // if detached 
-                else
-                {
-                    // if hb loc
-                    if (preemptive.equals(tracLoc))
-                    {
-                        System.out.println("another load");
-                        System.out.println(preemptive);
-                        preemptive = origin;
-                        return new Command(CommandType.LOAD);
-                    }
-                    else
-                    {
-                        if (bales.size() > 0)
-                        {
-                            System.out.println("moving to another");
-                            Point p = bales.remove(rand.nextInt(bales.size()));
-                            preemptive = p;
-                            System.out.println(p);
-                            return Command.createMoveCommand(p);
-                        }
-                        else
-                        {
-                            return Command.createMoveCommand(origin);
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-*/
