@@ -20,16 +20,32 @@ public class Player implements sunshine.sim.Player {
     
     List<Point> bales;
 
+    ////////// Custom Variables //////////
     HashMap<Integer, Trailer> pairs = new HashMap<Integer, Trailer>();
     HashMap<Integer, Point> pairs_locs = new HashMap<Integer, Point>();
 
     List<Trailer> trailers;
     List<Point> trailerLocs;
     Point preemptive;
+    ////////// End Custom Variables ////////// 
 
-    private static double relativeDist(Point a, Point b)
+    ////////// Custom Functions ////////// 
+    private static Double relativeDist(Point a, Point b)
     {
         return Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2);
+    }
+
+    private static Boolean atBaleLoc(Point yourLoc, List<Point> baleLocList)
+    {
+        Boolean isAtBaleLoc = false;
+        for (Point p: baleLocList)
+        {
+            if (yourLoc.equals(p))
+            {
+                isAtBaleLoc = true;
+            }
+        }
+        return isAtBaleLoc;
     }
 
     private static Point nearestPoint(Point point, List<Point> pointList) 
@@ -48,6 +64,7 @@ public class Player implements sunshine.sim.Player {
         }
         return nearestPoint;
     }
+    ////////// End Custom Functions ////////// 
 
     //private static Trailer nearestTrailer(Tractor tractor, List<Trailer> trailerList)
     //{
@@ -93,13 +110,113 @@ public class Player implements sunshine.sim.Player {
             trailerLoc = tractor.getLocation();
         }
 
-        //Boolean hb = tractor.getHasBale();
-        //Boolean origin = tracLoc.equals(origin);
-        //Boolean attached = tractor.getAttachedTrailer() != null;
-        //Boolean atTrailer = tracLoc.x == trailerLoc.x && tracLoc.y == trailerLoc.y;
-        //Integer numBales = 
-        
+        Boolean hb = tractor.getHasBale();
+        Boolean atOrigin = tracLoc.equals(origin);
+        Boolean attached = tractor.getAttachedTrailer() != null;
+        Boolean atTrailer = tracLoc.equals(trailerLoc);
+        //Boolean atBale = atBaleLoc(tracLoc, bales);
+        Integer numBales = trailer.getNumBales();
+        //Integer nextBaleIndex = rand.nextInt(bales.size());
+        Boolean areBalesRem = bales.size() > 0;
+        System.out.println(areBalesRem);
+        System.out.println(bales.size());
 
+
+        // TODO: (attached)
+        if (!hb && atOrigin && attached && numBales == 0 && areBalesRem)
+        {
+          // TODO: random
+          Point p = bales.remove(rand.nextInt(bales.size()));
+          //preemptive = p;
+          return Command.createMoveCommand(p);
+        }
+        else if (!hb && !atOrigin && attached && areBalesRem)
+        {
+            pairs.put(Id, trailer);
+            pairs_locs.put(Id, tracLoc);
+
+            return new Command(CommandType.DETATCH);
+        }
+        //else if (!hb && !atOrigin && !attached && atBale)
+        else if (!hb && atBaleLoc(tracLoc, bales))
+        {
+            //bales.remove(tracLoc);
+            return new Command(CommandType.LOAD);
+        }
+        else if (!hb && !atOrigin && !attached && !atBaleLoc(tracLoc, bales) && areBalesRem)
+        {
+            // TODO: random
+            //Point p = bales.remove(rand.nextInt(bales.size()));
+            Point p = bales.get(rand.nextInt(bales.size()));
+            return Command.createMoveCommand(p);
+        }
+        else if (hb && !atOrigin && !attached && !atTrailer)
+        {
+            return Command.createMoveCommand(trailerLoc);
+        }
+        else if (hb && !atOrigin && !attached && atTrailer && numBales < 10)
+        {
+            return new Command(CommandType.STACK);
+        }
+        else if (hb && !atOrigin && !attached && atTrailer && numBales == 10)
+        {
+            return new Command(CommandType.ATTACH);
+        }
+        else if (hb && !atOrigin && attached)
+        {
+            return Command.createMoveCommand(origin);
+        }
+        else if (atOrigin && attached && numBales > 0)
+        {
+            System.out.println("stuck?");
+            return new Command(CommandType.DETATCH);
+        }
+        else if (hb && atOrigin)
+        {
+            return new Command(CommandType.UNLOAD);
+        }
+        else if (!hb && atOrigin && numBales > 0)
+        {
+            System.out.println(numBales);
+            return new Command(CommandType.UNSTACK);
+        }
+        // TODO: shouldn't always be detached
+        else if (!hb && atOrigin && !attached && numBales == 0) 
+        {
+            return new Command(CommandType.ATTACH);
+        }
+        else if (!atOrigin && numBales == 0 && !areBalesRem)
+        {
+            return Command.createMoveCommand(origin);
+        }
+        else if (!atOrigin && !atTrailer && numBales > 0 && !areBalesRem)
+        {
+            return Command.createMoveCommand(trailerLoc);
+        }
+        else if (!atOrigin && !areBalesRem && !attached && atTrailer)
+        {
+            System.out.println("stuck?");
+            return new Command(CommandType.ATTACH);
+        }
+        else if (!atOrigin && attached && !areBalesRem)
+        {
+            return Command.createMoveCommand(origin);
+        }
+        else if (atOrigin && attached && numBales > 0)
+        {
+            System.out.println("stuck2?");
+            return new Command(CommandType.DETATCH);
+        }
+        else
+        {
+            return null;
+        }
+    }
+}
+
+
+        
+/*
         // hb
         if (tractor.getHasBale())
         {
@@ -154,9 +271,9 @@ public class Player implements sunshine.sim.Player {
                 if (tractor.getAttachedTrailer() != null)
                 {
                     // trailer full
-                    if (numBales == 10)
+                    if (numBales > 0)
                     {
-                        Point preemptive;
+                        //Point preemptive;
                         return new Command(CommandType.DETATCH);
                     }
                     else
@@ -230,7 +347,7 @@ public class Player implements sunshine.sim.Player {
                         }
                         else
                         {
-                            return null;
+                            return Command.createMoveCommand(origin);
                         }
                     }
                 }
@@ -238,3 +355,4 @@ public class Player implements sunshine.sim.Player {
         }
     }
 }
+*/
