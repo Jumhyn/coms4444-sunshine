@@ -11,6 +11,9 @@ import sunshine.sim.CommandType;
 import sunshine.sim.Point;
 import sunshine.sim.Trailer;
 
+import sunshine.g3.Protocol.RandomNoTrailers;
+import sunshine.g3.Protocol.RandomAllTrailers;
+
 
 public class Player implements sunshine.sim.Player {
     // Random seed of 42.
@@ -21,9 +24,7 @@ public class Player implements sunshine.sim.Player {
 
     ////////// Custom Variables //////////
     HashMap<Integer, Trailer> pairs = new HashMap<Integer, Trailer>();
-    HashMap<Integer, Point> pairs_locs = new HashMap<Integer, Point>();
 
-    List<Trailer> trailers;
     HashMap<Integer, Point> preemptive = new HashMap<Integer, Point>();
     ////////// End Custom Variables ////////// 
 
@@ -56,13 +57,18 @@ public class Player implements sunshine.sim.Player {
     }
     
     public void init(List<Point> bales, int n, double m, double t)
-
     {
         this.bales = bales;
     }
 
     
     public Command getCommand(Tractor tractor)
+    {
+        return RandomNoTrailers.getCommand(rand, tractor, bales, pairs, preemptive);
+        return RandomAllTrailers.getCommand(rand, tractor, bales, pairs, preemptive);
+    }
+}
+/*
     {
         Integer Id = tractor.getId();
         Point origin = new Point(0.0, 0.0);
@@ -96,9 +102,6 @@ public class Player implements sunshine.sim.Player {
         Integer numBales = trailer.getNumBales();
         Boolean areBalesRem = bales.size() > 0;
         areBalesRem = areBalesRem || havePreemptive;
-        System.out.println(areBalesRem);
-        System.out.println(bales.size());
-
 
         // TODO: (attached)
         if (!hb && atOrigin && attached && numBales == 0 && areBalesRem)
@@ -111,7 +114,6 @@ public class Player implements sunshine.sim.Player {
         else if (!hb && !atOrigin && attached && areBalesRem)
         {
             pairs.put(Id, trailer);
-            pairs_locs.put(Id, tracLoc);
 
             return new Command(CommandType.DETATCH);
         }
@@ -190,3 +192,4 @@ public class Player implements sunshine.sim.Player {
         }
     }
 }
+*/
