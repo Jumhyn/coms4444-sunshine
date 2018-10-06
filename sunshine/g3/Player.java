@@ -24,7 +24,6 @@ public class Player implements sunshine.sim.Player {
     HashMap<Integer, Point> pairs_locs = new HashMap<Integer, Point>();
 
     List<Trailer> trailers;
-    List<Point> trailerLocs;
     HashMap<Integer, Point> preemptive = new HashMap<Integer, Point>();
     ////////// End Custom Variables ////////// 
 
@@ -34,22 +33,9 @@ public class Player implements sunshine.sim.Player {
         return Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2);
     }
 
-    private static Boolean atBaleLoc(Point yourLoc, List<Point> baleLocList)
-    {
-        Boolean isAtBaleLoc = false;
-        for (Point p: baleLocList)
-        {
-            if (yourLoc.equals(p))
-            {
-                isAtBaleLoc = true;
-            }
-        }
-        return isAtBaleLoc;
-    }
-
     private static Point nearestPoint(Point point, List<Point> pointList) 
     {
-        Point nearestPoint = nullPoint;
+        Point nearestPoint = new Point(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
         Double nearestDist = Double.POSITIVE_INFINITY;
 
         for (Point p: pointList) 
@@ -65,13 +51,6 @@ public class Player implements sunshine.sim.Player {
     }
     ////////// End Custom Functions ////////// 
 
-    //private static Trailer nearestTrailer(Tractor tractor, List<Trailer> trailerList)
-    //{
-    //    Trailer nearestTrailer;
-    //    List<Point> pointList;
-    //}
-
-
     public Player() {
         rand = new Random(seed);
     }
@@ -79,9 +58,6 @@ public class Player implements sunshine.sim.Player {
     public void init(List<Point> bales, int n, double m, double t)
 
     {
-        //for (Point b : bales) {
-        //    System.out.println(String.valueOf(b.x) + " " + String.valueOf(b.y));
-        //}
         this.bales = bales;
     }
 
@@ -117,9 +93,7 @@ public class Player implements sunshine.sim.Player {
         Boolean atTrailer = tracLoc.equals(trailerLoc);
         Boolean atPreemptive = tracLoc.equals(preemptive.get(Id));
         Boolean havePreemptive = !preemptive.get(Id).equals(nullPoint);
-        //Boolean atBale = atBaleLoc(tracLoc, bales);
         Integer numBales = trailer.getNumBales();
-        //Integer nextBaleIndex = rand.nextInt(bales.size());
         Boolean areBalesRem = bales.size() > 0;
         areBalesRem = areBalesRem || havePreemptive;
         System.out.println(areBalesRem);
@@ -141,7 +115,7 @@ public class Player implements sunshine.sim.Player {
 
             return new Command(CommandType.DETATCH);
         }
-        else if (!hb && !atOrigin && !attached && atPreemptive) //atBaleLoc(tracLoc, bales))
+        else if (!hb && !atOrigin && !attached && atPreemptive)
         {
             System.out.println("stuck?");
             preemptive.put(Id, nullPoint);
