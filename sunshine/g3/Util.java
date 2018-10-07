@@ -1,6 +1,7 @@
 package sunshine.g3;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import sunshine.sim.Point;
 
@@ -28,22 +29,44 @@ public class Util {
         return nearestPoint;
     }
 
-    public static Point centroid(List<Point> pointList)
+    public static Point centroid(List<Point> pointList, List<Double> weightList)
     {
-        Double x = 0;
-        Double y = 0;
-        Integer n = 0;
+        assert pointList.getSize() == weightList.getSize() : "Point list and weight list not of equal length.";
 
-        for (Point p: pointList)
+        Double x = 0.0;
+        Double y = 0.0;
+        Double n = 0.0;
+
+        for (int i = 0; pointList.getSize(); i++)
         {
-            x += p.x;
-            y += p.y;
-            n += 1;
+            Point p = pointList.get(i);
+            Double w = weightList.get(i);
+    
+            x += p.x * w;
+            y += p.y * w;
+            n += w;
         }
 
         return new Point(x/n, y/n);
     }
 
+    public static Point centroidTrailer(List<Point> pointList)
+    {
+        List<Point> pointListOrigin = new ArrayList<Point>(pointList);
+        pointListOrigin.add(new Point(0.0, 0.0));
+
+        List<Double> weightListOrigin;
+        for (Point p: pointList)
+        {
+            weightListOrigin.add(1.0);
+        }
+        weightListOrigin.add(2.5);
+
+        Point centroidOrigin = centroid(pointListOrigin, weightListOrigin);
+        return centroidOrigin;
+    }
+
+    /*
     public static Point weiszfeld(List<Point> pointList)
     {
         Point y_prev = centroid(pointList);
@@ -64,4 +87,5 @@ public class Util {
         }
         return null;
     }
+    */
 }
