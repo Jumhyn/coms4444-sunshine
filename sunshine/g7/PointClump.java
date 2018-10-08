@@ -2,15 +2,127 @@ package sunshine.g7;
 
 import java.util.Collection;
 import java.util.ArrayList;
+import java.lang.Math;
 
 import sunshine.sim.Point;
 
+/*
+TODO: implement function that checks if it is worth it to use a trailer for this clump
+*/
+
 class PointClump extends ArrayList<Point> {
-	public PointClump(Collection<? extends Point> c) {
-		super(c);
+
+    public Point dropPoint;
+    public boolean barnClump;
+
+    private double accuracy = 1;
+    
+    public PointClump(Collection<? extends Point> c) {
+
+	super(c);
+
+	//	System.out.println("in constructor");
+	
+	setDropPoint();
+
+	double trailerCost = 0;
+	double tractorCost = 0;
+	barnClump = ( trailerCost > tractorCost );
+
+	//	System.out.println("tractor cost: " + tractorCost + "\t trailer cost: " + trailerCost + "\t barnClump: " + barnClump);
+
+	    
+    }
+    
+    public PointClump() {
+	super();
+	barnClump = false;
+	
+    }
+
+    public Point centroid() {
+	double x = 0;
+	double y = 0;
+	for ( Point p : this ) {
+	    x += p.x;
+	    y += p.y;
+	}
+	x = x / (super.size() + 1);
+	y = y / (super.size() + 1);
+
+	//	System.out.println("centriod is: " + x + ", " + y);
+
+	return new Point(x, y);
+    }
+
+    public double distanceSum(Point center) {
+	double total = 0;
+	for ( Point p : this ) {
+	    double Xdist = Math.abs(center.x - p.x);
+	    double Ydist = Math.abs(center.y - p.y);
+
+	    total += Math.sqrt( Xdist*Xdist + Ydist*Ydist );
 	}
 
-	public PointClump() {
-		super();
+	total += 2.5*( Math.sqrt( center.x*center.x + center.y*center.y ));
+	//distance from origin costs more
+	
+	return total;
+    }
+    
+    public Point geometricMean() {
+	//Uses Weiszfeld's Algorithm to approximate geometric mean
+
+	boolean decreaseStep = false;
+	double stepSize = 100;
+	Point est = centroid();
+	//System.out.println("dropPoint is: " + est.x + ", " + est.y);
+
+	
+	double minCost = distanceSum(est);
+
+	//	System.out.println("cost is " + minCost);
+
+	while ( stepSize > accuracy ) {
+
+	    decreaseStep = true;
+
+	    ArrayList<Point> neighbors = new ArrayList<Point>();
+	    neighbors.add( new Point(est.x, est.y+stepSize) );
+	    neighbors.add( new Point(est.x, est.y-stepSize) );
+	    neighbors.add( new Point(est.x-stepSize, est.y) );
+	    neighbors.add( new Point(est.x+stepSize, est.y) );
+
+	    for (Point n : neighbors) {
+
+		//System.out.println("neighbor is: " + n.x + ", " + n.y);
+		
+		double cost = distanceSum(n);
+
+		//System.out.println("cpst is: " + cost);
+		if (cost < minCost) {
+		    //System.out.println("new mincost");
+		    minCost = cost;
+		    est = n;
+		    decreaseStep = false;
+		}
+	    }
+
+	    if ( decreaseStep ) {
+		//System.out.println("decreasing step");
+		stepSize = stepSize/2;
+	    }
+	    
 	}
+
+	return est;
+    }
+    
+    public void setDropPoint() {
+	//System.out.println("setting drop point");
+	dropPoint = geometricMean();
+	System.out.println("dropPoint is: " + dropPoint.x + ", " + dropPoint.y);
+    }
+    
+    
 }

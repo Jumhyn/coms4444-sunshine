@@ -38,8 +38,8 @@ public class Player implements sunshine.sim.Player {
     	);
     	this.bales.addAll(bales);
 
-    	// AbstractSplitter splitter = new CircleLineSplitter();
-    	// List<PointClump> clumps = splitter.splitUpPoints(PointUtils.pollNElements(this.bales, 11*n));
+    	AbstractSplitter splitter = new CircleLineSplitter();
+        List<PointClump> clumps = splitter.splitUpPoints(PointUtils.pollNElements(this.bales, 11*n));
     }
     
     public Command getCommand(Tractor tractor)
