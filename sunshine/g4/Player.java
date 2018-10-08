@@ -1,13 +1,8 @@
 package sunshine.g4;
 
+import java.util.*;
 import java.util.List;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
 import java.lang.Math;
-import java.util.Random;
 
 import sunshine.sim.Command;
 import sunshine.sim.Tractor;
@@ -40,7 +35,7 @@ public class Player implements sunshine.sim.Player {
 
         trailer_pos = new HashMap<Integer, Point>();
         tractor_mode = new HashMap<Integer, Integer>();
-        trailer_with_bales = new HashMap<Integer, Integer>(); 
+        trailer_with_bales = new HashMap<Integer, Integer>();
     }
 
     public double dist(double x1, double y1, double x2, double y2) {
@@ -131,13 +126,12 @@ public class Player implements sunshine.sim.Player {
                     }
                 } else {
                     System.out.println(3);
-                    if (far_bales.size() > 0){
+                    if (far_bales.size() > 0) {
                         Point p = far_bales.remove(rand.nextInt(far_bales.size()));
                         tractor_mode.put(id, 3);
                         away_tractor.put(id, cluster(p));
                         return Command.createMoveCommand(center(away_tractor.get(id)));
-                    }
-                    else{
+                    } else {
                         System.out.println(4);
                         away_tractor.remove(id);
                         close_tractor.add(id);
@@ -193,43 +187,40 @@ public class Player implements sunshine.sim.Player {
                 tractor_mode.put(id, 9);
                 return Command.createMoveCommand(new Point(0, 0));
 
-                // unload first
+            // unload first
             case 9:
                 if (close_tractor.contains(id)) {
                     tractor_mode.put(id, 1);
                     return new Command(CommandType.UNLOAD);
-                } 
-                else {
-                    if (tractor.getAttachedTrailer()==null){
+                } else {
+                    if (tractor.getAttachedTrailer() == null) {
                         tractor_mode.put(id, 11);
-                    }
-                    else {
+                    } else {
                         tractor_mode.put(id, 10);
                     }
                     return new Command(CommandType.UNLOAD);
-                } 
+                }
 
                 // detach the trailer
             case 10:
-                tractor_mode.put(id, 11);    
-                trailer_with_bales.put(id,10);
+                tractor_mode.put(id, 11);
+                trailer_with_bales.put(id, 10);
                 return new Command(CommandType.DETATCH);
 
             case 11:
-                if (trailer_with_bales.get(id) > 1){
-                    tractor_mode.put(id, 9);    
+                if (trailer_with_bales.get(id) > 1) {
+                    tractor_mode.put(id, 9);
                     trailer_with_bales.put(id, trailer_with_bales.get(id) - 1);
                     return new Command(CommandType.UNSTACK);
-                }                    
-                else {
-                    tractor_mode.put(id, 12);    
+                } else {
+                    tractor_mode.put(id, 12);
                     trailer_with_bales.remove(id);
                     return new Command(CommandType.UNSTACK);
                 }
 
             case 12:
-                tractor_mode.put(id,1);
-                return new Command(CommandType.ATTACH);                    
+                tractor_mode.put(id, 1);
+                return new Command(CommandType.ATTACH);
 
         }
         return Command.createMoveCommand(new Point(0, 0));
@@ -239,11 +230,44 @@ public class Player implements sunshine.sim.Player {
      * cluster helper functions
      **/
 
+    private class EuclideanDescComparator implements Comparator<Point> {
+        @Override
+        public int compare(Point p1, Point p2) {
+            return (int) (((p1.x * p1.x + p1.y * p1.y) - (p2.x * p2.x + p2.y * p2.y)) * 1000);
+        }
+    }
+
+    private class RelativeEuclideanAscComparator implements Comparator<Point> {
+
+        private Point p;
+
+        public RelativeEuclideanAscComparator(Point pivot) {
+            super();
+            p = pivot;
+        }
+
+        @Override
+        public int compare(Point p1, Point p2) {
+            return (int) ((((p1.x - p.x) * (p1.x - p.x) + (p1.y - p.y) * (p1.y - p.y)) - ((p2.x - p.x) * (p2.x - p.x) + (p2.y - p.y) * (p2.y - p.y))) * -1000);
+        }
+    }
+
+    private double Euclidean(Point p1, Point p2) {
+        return (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y);
+    }
+
     //return the next cluster list and center
-    private List<Point> getClusters(List<Point> bales, int k) {  //k bales per cluster
+    private Cluster getClusters(List<Point> inputBales, int k) {  // k bales per cluster
+        List<Point> bales = new ArrayList<>(inputBales);
         List<Point> result = new ArrayList<>();
-//        Collections.sort(bales, (Point p1, Point p2) -> p1.x > p2.y)
-        return result;
+        if (bales.isEmpty()) return null;
+        Collections.sort(bales, new EuclideanDescComparator()); // change to max() for optimization
+        Point pivot = bales.get(0);
+        Collections.sort(bales, new RelativeEuclideanAscComparator(pivot));
+        for (int i = 1; i < k && i < bales.size(); i++){
+            result.add(bales.get(i));
+        }
+        return new Cluster(result, null);
     }
 
     // Determine what the threshold should be.
