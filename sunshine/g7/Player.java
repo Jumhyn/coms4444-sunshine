@@ -70,11 +70,15 @@ public class Player implements sunshine.sim.Player {
                 }
                 else
                 {
-                    for (PointClump i : currentClump){
-                        if (i.tractor == tractor){
-                            currentClump.remove(i);
+                    PointClump toRemove=null;
+                    for (PointClump j : currentClump){
+                        if (j.tractor == tractor){
+                            toRemove=j;
+                            break;
                         }
                     }
+                    System.out.println("Removing finished clump");
+                    currentClump.remove(toRemove);
                     PointClump next;
                     if (this.far.size() > 0)
                     {
@@ -87,8 +91,8 @@ public class Player implements sunshine.sim.Player {
                     }
                     else if(near.size() > 0)
                     {
-                        Point p = near.poll();
-                        return Command.createMoveCommand(p);
+                        // Point p = near.poll();
+                        return new Command(CommandType.DETATCH);
                     }
                     else
                     {
@@ -105,7 +109,32 @@ public class Player implements sunshine.sim.Player {
                 else
                 {
                     // get bale from trailer or attach to trailer for next Clump
-                    return new Command(CommandType.STACK);
+                    PointClump clump=null;
+                    for (PointClump i : currentClump){
+                        if (i.tractor == tractor){
+                            clump = i;
+                            break;
+                        }
+                    }
+                    if (clump != null){
+                        if (clump.trailer.getNumBales()>0){
+                            return new Command(CommandType.UNSTACK);
+                        }
+                        else{
+
+                            return new Command(CommandType.ATTACH);
+                        }
+                    }
+                    else
+                    {
+                        if (near.size()>0){
+                            Point p = near.poll();
+                            return Command.createMoveCommand(p);
+                        }
+                        else{
+                            return new Command(CommandType.UNSTACK);
+                        }
+                    }
                 }
             }
         }
@@ -113,12 +142,20 @@ public class Player implements sunshine.sim.Player {
         else
         {
             Trailer trailer = tractor.getAttachedTrailer();
+            PointClump clump=null;
+            Point nextPoint;
+            for (PointClump i : currentClump){
+                if (i.tractor == tractor){
+                    clump = i;
+                    break;
+                }
+            }
+
             if (trailer != null)
             {
                 // if trailer is empty, detach the trailer
-                if (trailer.getNumBales()<10)
+                if (clump.size()>0)
                 {
-                    System.out.println(trailer.getLocation().x+","+trailer.getLocation().y);
                     return new Command(CommandType.DETATCH);
                 }
                 // if trailer is full, send to barn
@@ -130,50 +167,67 @@ public class Player implements sunshine.sim.Player {
             // When not attached to trailer: 1. pick up bales in clump 2. attach to trailer
             else
             {
-                PointClump clump=null;
-                Point nextPoint;
-                for (PointClump i : currentClump){
-                    if (i.tractor == tractor){
-                        clump = i;
-                        break;
-                    }
-                }
+
                 if (tractor.getHasBale())
                 {
-                    if (clump.trailer.getNumBales()>=10)
+                    if (clump != null)
                     {
-                        return new Command(CommandType.ATTACH);
-                    }
-                    else
-                    {
-                        if (clump.trailer.getLocation().x==tractor.getLocation().x && clump.trailer.getLocation().y==tractor.getLocation().y)
-                        {    
-                            return new Command(CommandType.UNSTACK);
+                        if (clump.trailer.getNumBales()>=10)
+                        {
+                            if (clump.trailer.getLocation().x==tractor.getLocation().x && clump.trailer.getLocation().y==tractor.getLocation().y)
+                            {   
+                                return new Command(CommandType.ATTACH);
+                            }
+                            else
+                            {
+                                return Command.createMoveCommand(clump.trailer.getLocation());
+                            }
                         }
                         else
                         {
-                            return Command.createMoveCommand(clump.trailer.getLocation());
+                            if (clump.trailer.getLocation().x==tractor.getLocation().x && clump.trailer.getLocation().y==tractor.getLocation().y)
+                            {    
+                                return new Command(CommandType.STACK);
+                            }
+                            else
+                            {
+                                return Command.createMoveCommand(clump.trailer.getLocation());
+                            }
                         }
+                    }
+                    else
+                    {
+                        return Command.createMoveCommand(new Point(0.0, 0.0));
                     }
                 }
                 else
                 {
-                    if (tractor.getLocation().x == clump.get(0).x && tractor.getLocation().y == clump.get(0).y)
-                    {       
-                        clump.remove(0);
-                        return new Command(CommandType.LOAD);
+                    if (clump != null){
+                        if (clump.size()>0){
+                            if (tractor.getLocation().x == clump.get(0).x && tractor.getLocation().y == clump.get(0).y)
+                            {       
+                                clump.remove(0);
+                                return new Command(CommandType.LOAD);
+                            }
+                            else
+                            {
+                                if (clump.size()>0)
+                                {
+                                    nextPoint=clump.get(0);
+                                    return Command.createMoveCommand(nextPoint);
+                                }
+                                else
+                                {
+                                    return null;
+                                }
+                            }
+                        }
+                        else{
+                            return new Command(CommandType.ATTACH);
+                        }
                     }
-                    else
-                    {
-                        if (clump.size()>0)
-                        {
-                            nextPoint=clump.get(0);
-                            return Command.createMoveCommand(nextPoint);
-                        }
-                        else
-                        {
-                            return null;
-                        }
+                    else{
+                        return new Command(CommandType.LOAD);
                     }
                 }
             }
