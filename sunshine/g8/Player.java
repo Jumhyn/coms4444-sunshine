@@ -2,6 +2,7 @@ package sunshine.g8;
 
 import java.lang.Math;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Collections;
 import java.util.List;
@@ -27,14 +28,14 @@ public class Player implements sunshine.sim.Player
 	private List<Point> trailer_bales;
 	
 	// Make list of centroids
-	private List<Point> centroids = new List<Point>;
+	private List<Point> centroids = new ArrayList<Point>();
 	
 	private boolean is_not_removed = true;
 
 	// Get number of tractors, change stategy as needed
 	private int n_tractors = 0;
 	private double dimensions = 0;
-	private int hay_stack = 0;
+	private int haystack = 0;
 
 	public Player() 
 	{
@@ -135,10 +136,10 @@ public class Player implements sunshine.sim.Player
 				if(tractor.getAttachedTrailer() != null)
 				{
 					// It is time to empty everything
-					if(tractor.gethasBale())
+					if(tractor.getHasBale())
 					{
-						this.haystack = tractor.getAttachedTrailer();
-						return new Command(CommandType.DETACH);
+						haystack = tractor.getAttachedTrailer().getNumBales();
+						return new Command(CommandType.DETATCH);
 					}
 					// Everything is empty, Go now!
 					else
@@ -183,21 +184,21 @@ public class Player implements sunshine.sim.Player
 				if(tractor.getAttachedTrailer() != null)
 				{
 					// Just in case the bails for trailer are done! Go Back NOW!
-					if(trailer_bails == null || trailer_bails.isEmpty())
+					if(trailer_bales == null || trailer_bales.isEmpty())
 					{
-						return Command.createMoveCommand(new Point(0.0, 0.0)));
+						return Command.createMoveCommand(new Point(0.0, 0.0));
 					}
 					
 					// Do you have 11th bale? If so, time to go?
-					if(tractor.gethasBale())
+					if(tractor.getHasBale())
 					{
-						return Command.createMoveCommand(new Point(0.0, 0.0)));
+						return Command.createMoveCommand(new Point(0.0, 0.0));
 					}
 					// Everything is empty, Go now!
 					else
 					{
-						this.haystack = tractor.getAttachedTrailer();
-						return new Command(CommandType.DETACH);
+						this.haystack = tractor.getAttachedTrailer().getNumBales();
+						return new Command(CommandType.DETATCH);
 					}
 				}
 				else
@@ -213,7 +214,6 @@ public class Player implements sunshine.sim.Player
 						return new Command(CommandType.ATTACH);
 					}
 				}
-				return Command.createMoveCommand(new Point(0.0, 0.0));
 			}
     		
 			
