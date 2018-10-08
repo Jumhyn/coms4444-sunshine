@@ -10,18 +10,34 @@ import sunshine.sim.CommandType;
 import sunshine.sim.Point;
 import sunshine.sim.Trailer;
 
+import sunshine.g3.Util.*;
+
 
 public class RandomNoTrailers {
     public static Command getCommand(Random rand,
                                      Tractor tractor,
                                      List<Point> bales,
                                      HashMap<Integer, Trailer> pairs,
-                                     HashMap<Integer, Point> preemptive)
+                                     HashMap<Integer, Point> preemptive,
+                                     HashMap<Integer, BalesProtocol> balesAssignments)
     {
         Integer Id = tractor.getId();
         Point origin = new Point(0.0, 0.0);
         Point nullPoint = new Point(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
         Point tracLoc = tractor.getLocation();
+
+        System.out.println(bales.size());
+
+        List<Point> assignedBales = balesAssignments.get(Id).balesLocations;
+
+        //if (balesAssignments.containsKey(Id))
+        //{
+        //    assignedBales = balesAssignments.get(Id).bales;
+        //}
+        //else
+        //{
+        //    assignedBales = bales;
+        //}
 
         if (!preemptive.containsKey(Id)) 
         {
@@ -32,7 +48,7 @@ public class RandomNoTrailers {
         Boolean atOrigin = tracLoc.equals(origin);
         Boolean attached = tractor.getAttachedTrailer() != null;
         Boolean havePreemptive = !preemptive.get(Id).equals(nullPoint);
-        Boolean areBalesRem = bales.size() > 0;
+        Boolean areBalesRem = assignedBales.size() > 0;
         areBalesRem = areBalesRem || havePreemptive;
 
         // TODO: (attached)
@@ -42,7 +58,8 @@ public class RandomNoTrailers {
         }
         else if (!hb && atOrigin && areBalesRem)
         {
-            Point p = bales.remove(rand.nextInt(bales.size()));
+            //Point p = assignedBales.remove(rand.nextInt(assignedBales.size()));
+            Point p = assignedBales.remove(0);
             preemptive.put(Id, p);
             return Command.createMoveCommand(p);
         }
