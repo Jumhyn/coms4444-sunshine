@@ -130,7 +130,7 @@ public class Player implements sunshine.sim.Player {
                         Point p = far_bales.remove(rand.nextInt(far_bales.size()));
                         tractor_mode.put(id, 3);
 //                        away_tractor.put(id, cluster(p));
-                        Cluster myCluster = getClusters(far_bales, 11);
+                        Cluster myCluster = getClusters(far_bales, 10);
                         away_tractor.put(id, myCluster.nodes);
                         for(int i = 0; i < far_bales.size(); i++){
                             if(myCluster.nodes.contains(far_bales.get(i))){
@@ -140,6 +140,7 @@ public class Player implements sunshine.sim.Player {
                         return Command.createMoveCommand(center(away_tractor.get(id)));
                     } else {
                         System.out.println(4);
+                        if(close_bales.isEmpty())return new Command(CommandType.UNSTACK);
                         away_tractor.remove(id);
                         close_tractor.add(id);
                         tractor_mode.put(id, 2);
@@ -240,7 +241,7 @@ public class Player implements sunshine.sim.Player {
     private class EuclideanDescComparator implements Comparator<Point> {
         @Override
         public int compare(Point p1, Point p2) {
-            return (int) (((p1.x * p1.x + p1.y * p1.y) - (p2.x * p2.x + p2.y * p2.y)) * 1000);
+            return (int) (((p1.x * p1.x + p1.y * p1.y) - (p2.x * p2.x + p2.y * p2.y)) * -10000);
         }
     }
 
@@ -255,7 +256,7 @@ public class Player implements sunshine.sim.Player {
 
         @Override
         public int compare(Point p1, Point p2) {
-            return (int) ((((p1.x - p.x) * (p1.x - p.x) + (p1.y - p.y) * (p1.y - p.y)) - ((p2.x - p.x) * (p2.x - p.x) + (p2.y - p.y) * (p2.y - p.y))) * -1000);
+            return (int) ((((p1.x - p.x) * (p1.x - p.x) + (p1.y - p.y) * (p1.y - p.y)) - ((p2.x - p.x) * (p2.x - p.x) + (p2.y - p.y) * (p2.y - p.y))) * 10000);
         }
     }
 
@@ -265,14 +266,18 @@ public class Player implements sunshine.sim.Player {
 
     //return the next cluster list and center
     private Cluster getClusters(List<Point> inputBales, int k) {  // k bales per cluster
-        List<Point> bales = new ArrayList<>(inputBales);
+        List<Point> myBales = new ArrayList<>(inputBales);
         List<Point> result = new ArrayList<>();
-        if (bales.isEmpty()) return null;
-        Collections.sort(bales, new EuclideanDescComparator()); // change to max() for optimization
-        Point pivot = bales.get(0);
-        Collections.sort(bales, new RelativeEuclideanAscComparator(pivot));
-        for (int i = 0; i < k && i < bales.size(); i++){
-            result.add(bales.get(i));
+        if (myBales.isEmpty()) return null;
+        Collections.sort(myBales, new EuclideanDescComparator()); // change to max() for optimization
+        Point pivot = myBales.get(0);
+        result.add(pivot);
+        myBales.remove(0);
+        Collections.sort(myBales, new RelativeEuclideanAscComparator(pivot));
+        for (int i = 0; i < k && i < myBales.size(); i++){
+            result.add(myBales.get(i));
+            System.out.println("DEBUG /// \n\n");
+            System.out.println(Euclidean(myBales.get(i), pivot));
         }
         return new Cluster(result, null);
     }
