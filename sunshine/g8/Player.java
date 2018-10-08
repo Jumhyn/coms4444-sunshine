@@ -93,13 +93,13 @@ public class Player implements sunshine.sim.Player
 		if(n_tractors == 1)
 		{
 			// OPTON 1: USE NO TRAILER
-			/*
+			
 			if(is_not_removed)
 			{
 				is_not_removed = false;
 				return new Command(CommandType.DETATCH);
 			}
-			
+
 			// Option 1: Abandon Trailer, grab everything!
 			if (tractor.getHasBale()) 
 			{
@@ -127,10 +127,10 @@ public class Player implements sunshine.sim.Player
 					return new Command(CommandType.LOAD);
 				}
 			}
-			*/
 
 			// Option 2: Use Trailer for everything
 			// If at origin
+			/*
 			if (tractor.getLocation().equals(new Point(0.0, 0.0)))
 			{
 				if(tractor.getAttachedTrailer() != null)
@@ -184,12 +184,12 @@ public class Player implements sunshine.sim.Player
 				if(tractor.getAttachedTrailer() != null)
 				{
 					// Just in case the bails for trailer are done! Go Back NOW!
-					/*
-					if(trailer_bales == null || trailer_bales.isEmpty())
-					{
-						return Command.createMoveCommand(new Point(0.0, 0.0));
-					}
-					*/
+					
+					//if(trailer_bales == null || trailer_bales.isEmpty())
+					//{
+					//	return Command.createMoveCommand(new Point(0.0, 0.0));
+					//}
+					
 					
 					// Do you have 11th bale? If so, time to go?
 					if(tractor.getHasBale())
@@ -230,7 +230,7 @@ public class Player implements sunshine.sim.Player
 					}
 				}
 			}
-    		
+			*/
 			
 			// Option 3: Use Trailer ONLY ON QUADRAN 1 (Closest to Barn)
 
