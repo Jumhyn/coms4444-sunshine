@@ -1,51 +1,65 @@
-package sunshine.g6; 
+package sunshine.g6_2;
 
 import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.HashMap;
-import java.util.ArrayList;
+import java.util.PriorityQueue;
+import java.util.Comparator;
 
 import sunshine.sim.Command;
 import sunshine.sim.Tractor;
 import sunshine.sim.CommandType;
 import sunshine.sim.Point;
-
 import sunshine.sim.Trailer;
 
 
 public class Player implements sunshine.sim.Player {
-    // Random seed of 42.
     private int seed = 42;
-    private Random rand;
-    
-    List<Point> bales;
-    private double mapsize;
+    private Random rand;   
+    List<Point> bales = new ArrayList<Point>();
+    List<Point> farBales = new ArrayList<Point>();
+    List<Point> closeBales = new ArrayList<Point>();
+    int closeTractor;
+    int farTractor;
+    double circleArc;// = 90/farTractor;
+    List<Point> pointOncircle = new ArrayList<Point>();
+    double radius;
 
-    private HashMap<Integer, ArrayList<Point>> segments;
-    private HashMap<Integer, Point> midpoints;
+    List<Integer> close_tractor = new ArrayList<Integer>();
+    List<Integer> away_tractor = new ArrayList<Integer>();
+    Map<Integer, Integer> tractor_mode = new HashMap<Integer, Integer>();
+
+    List<Integer> leftover_tractor = new ArrayList<Integer>();
 
     public Player() {
         rand = new Random(seed);
     }
-
     public double dist(double x1,double y1,double x2,double y2){
-        return Math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
+        return Math.hypot(x1 - x2, y1 - y2);
     }
-    
+    public List<Point> dropTrailers(){
+        List<Point> dropPoints = new ArrayList<Point>();
+        for(int i=0;i<90;i+=circleArc){
+            double center_x = 0.0;
+            double center_y = 0.0;
+            double x = center_x + radius * Math.cos(Math.PI*i/180);
+            double y = Math.abs(center_y - radius * Math.sin(Math.PI*i/180));
+            Point p_temp = new Point(x, y);
+            dropPoints.add(p_temp);
+        }
+        return dropPoints;
+    }
     public void init(List<Point> bales, int n, double m, double t)
     {
         this.bales = bales;
-        //System.out.println("total num_bales = " + bales.size());
-        mapsize = m * m;
+        this.radius = m;
 
-
-        // #######################################################
-        // # Split bale points according to distance from origin #
-        // #######################################################
         for (int i=0; i<bales.size(); i++){
-            if (dist(bales.get(i).x,bales.get(i).y,0,0) > 600){
+            if (dist(bales.get(i).x,bales.get(i).y, 0, 0) > radius) {
                 farBales.add(bales.get(i));
             }
             else{
@@ -53,227 +67,221 @@ public class Player implements sunshine.sim.Player {
             }
         }
 
-        // #################################
-        // # Divide the grid into segments #
-        // #################################
+        this.farTractor = Math.round(farBales.size() / 10) + 1;
+        this.closeTractor = n - farTractor;
+        this.circleArc = 90/farTractor;
 
-        // segments will map the index of each segment to the list of all bale points in that segment
-        // segments are numbered along each row first, before moving to the next row
-        segments = new HashMap<Integer, ArrayList<Point>>();
-        // midpoints will map the index of each segment to a Point object containing the midpoint of that segment
-        midpoints = new HashMap<Integer, Point>();
-
-        double seg_rows = 4.0; //
-        double seg_cols = 4.0; //
-        // currently num_segs is hardcoded to be 16 segments, but will eventually be dynamic and dependent on mapsize
-        
-        double x_inc = m/seg_cols;
-        double y_inc = m/seg_rows;
-
-        double midpt_x_inc = x_inc/2.0;
-        double midpt_y_inc = y_inc/2.0;
-
-        double seg_x_Lbound = 0.0;
-        double seg_x_Rbound = x_inc;
-        double seg_y_Tbound = 0.0;
-        double seg_y_Bbound = y_inc;
-
-        int num_full_segs = 0;
-
-        // *** NOTE: currently assuming that a hay bale cannot be on the perimeter of the grid!!!
-
-        for (int seg_i=0; seg_i<seg_rows; seg_i++) {
-            
-            seg_x_Lbound = 0.0;
-            seg_x_Rbound = x_inc;
-            
-            for (int seg_j=0; seg_j<seg_cols; seg_j++) {
-                //System.out.println("num segs = " + num_full_segs + ", seg_i = " + seg_i + ", seg_j = " + seg_j); //
-
-                if (!bales.isEmpty()) {
-
-                    ArrayList<Point> pos_list = new ArrayList<Point>();
-
-                    // ### Get the midpoint of the segment ###
-                    double midpt_x = seg_x_Lbound + midpt_x_inc;
-                    double midpt_y = seg_y_Tbound + midpt_y_inc;
-
-                    midpoints.put(num_full_segs, new Point(midpt_x, midpt_y));
-
-                    // put the bales positions in this segment into the corresponding position list
-                    //System.out.println("x: " + seg_x_Lbound + " -> " + seg_x_Rbound + ", y: " + seg_y_Tbound + " -> " + seg_y_Bbound);
-                    //System.out.println("midpt: (" + midpt_x + ", " + midpt_y + ")");    
-
-
-                    for (Point pos : bales) {
-                        if ((pos.x >= seg_x_Lbound) && (pos.x < seg_x_Rbound) && (pos.y >= seg_y_Tbound) && (pos.y < seg_y_Bbound)) {
-                            // put this bale in the corresponding segment list
-                            pos_list.add(pos);
-                        }
-                    }
-
-                    segments.put(num_full_segs, pos_list);
-                    num_full_segs++;
-
-                    seg_x_Lbound = seg_x_Rbound;
-                    seg_x_Rbound += x_inc;
-
-
-                } else {
-                    //System.out.println("bales is empty!"); //
-                    // break out of for loop
-                    break;
-                }
+        for (int i=0; i<n;i++){
+            if (i<closeTractor){
+                close_tractor.add(i);
+                tractor_mode.put(i,0);
+                // state 0, needs to detach
             }
-            seg_y_Tbound = seg_y_Bbound;
-            seg_y_Bbound += y_inc;
+            else{
+                away_tractor.add(i);
+                tractor_mode.put(i, 1);
+                // state 1, ready to go
+            }
         }
 
-        /*int total_bales = 0; //
-        for (int seg : segments.keySet()) {
-            System.out.println("seg " + seg + " has " + segments.get(seg).size());
-            total_bales += segments.get(seg).size();
-            System.out.println("total num bales (at end) = " + total_bales);
-        } //*/
+        // System.out.println("how many bales: " + bales.size());
+        // System.out.println("how many far bales: " + farBales.size());
+        // System.out.println("how many close bales: " + closeBales.size());
+        // System.out.println("how many far tractors: " + farTractor);
+        // System.out.println("how many close tractors: " + closeTractor);
+        // System.out.println("away tractor numbers");
+        // for (Integer tractor : away_tractor) {
+        //     System.out.println(tractor); 
+        // }
 
-        //System.out.println("Number of full segments: " + segments.size() + " (check: " + num_full_segs + ")");
-        // if segments.size() and num_full_segs are not the same, then there are some segments that are not being filled with bales
-        
     }
+
+    Map<Integer,Integer> dropPlaceNum = new HashMap<Integer,Integer>();
     
-    // ##########################
-    // helper function to generate random int
-    // ##########################
-    private static int getRandomNumberInRange(int min, int max) {
+    public Command getCommand(Tractor tractor){
 
-        if (min >= max) {
-            throw new IllegalArgumentException("max must be greater than min");
-        }
+        System.out.println("how many bales left: " + bales.size());
+        System.out.println("how many far bales left: " + farBales.size());
+        System.out.println("how many close bales left: " + closeBales.size());
+        System.out.println("how many far tractors: " + away_tractor.size());
+        System.out.println("how many close tractors: " + close_tractor.size());
 
-        Random r = new Random();
-        return r.nextInt((max - min) + 1) + min;
-    }
+        int id = tractor.getId();
+        List<Point> drop = dropTrailers();
 
-    public Command getCommand(Tractor tractor)
-    {
-        System.out.println("tractor has bale? " + tractor.getHasBale());
+        // System.out.println("all points:");
+        // for (Point p : bales) {
+        //     System.out.print(p.x + ", ");
+        //     System.out.println(p.y);    
+        // }
+
+        // System.out.println("trailer drop points:");
+        // for (Point p : drop) {
+        //     System.out.print(p.x + ", ");
+        //     System.out.println(p.y);    
+        // }
         
-        // if tractor is at (0, 0)
-        if (tractor.getLocation().equals(new Point(0.0, 0.0)))
+        int randNum = 0;
+        Point p;
+        Point p_drop;
+        
+        switch(tractor_mode.get(id))
         {
-            if (tractor.getAttachedTrailer() == null)
+            // at 0,0, need to detatch
+            case 0: 
+            tractor_mode.put(id,1);
+            return new Command(CommandType.DETATCH);
+            
+            // at 0,0, ready to go do task
+            case 1:
+            if (close_tractor.contains(id)){
+                tractor_mode.put(id,7);
+                if (bales.size() != 0) {
+                    randNum = rand.nextInt(closeBales.size());
+                    p = closeBales.remove(randNum);
+                    bales.remove(randNum);
+                    return Command.createMoveCommand(p);
+                }
+                // to counter error at the end
+                else {
+                    return new Command(CommandType.DETATCH);
+                }
+
+            }
+            else{ // for far tractors
+                tractor_mode.put(id,2);
+                dropPlaceNum.put(id,0);  // this point has 0 bales initially
+                p_drop = drop.get(id-closeTractor);
+                return Command.createMoveCommand(p_drop); //go to the point that drops trailer
+            }
+
+            case 2:
+            tractor_mode.put(id,3);
+            return new Command(CommandType.DETATCH); 
+
+            //go to location of bale in far area
+            case 3:
+            tractor_mode.put(id,7);
+            randNum = rand.nextInt(farBales.size());
+            p = farBales.remove(randNum);
+            bales.remove(randNum);
+            return Command.createMoveCommand(p);
+
+            //return to the trailer and bales amount at this point +1
+            case 4:
+            tractor_mode.put(id,5);
+            return Command.createMoveCommand(drop.get(id-closeTractor));
+
+            //stack bale into trailer, increment trailer count
+            case 5:
+            tractor_mode.put(id,6);
+            // System.out.println("checking if tractor " + id + " has bale at case 5: " + tractor.getHasBale());
+            dropPlaceNum.put(id, dropPlaceNum.get(id)+1);    
+            return new Command(CommandType.STACK);    
+
+
+            case 6:
+            // if full, attach
+            if ((dropPlaceNum.get(id)>9) || (farBales.size() == 0))
             {
+                tractor_mode.put(id,8); 
                 return new Command(CommandType.ATTACH);
             }
-            else if (tractor.getHasBale())
-            {
-                return new Command(CommandType.UNLOAD);
+            else{   // if not, find more bales
+                // System.out.println("checking if tractor has bale at case 6: " + tractor.getHasBale());
+                tractor_mode.put(id,7);
+                randNum = rand.nextInt(farBales.size());
+                p = farBales.remove(randNum);
+                bales.remove(randNum);
+                return Command.createMoveCommand(p);
             }
-            else 
-            {
-                //head towards a random segment
-                Integer randomInt = getRandomNumberInRange(0, midpoints.size() - 1);
-                return Command.createMoveCommand(midpoints.get(randomInt));
+
+            //load
+            case 7:
+            if (close_tractor.contains(id)) {
+                tractor_mode.put(id,8);
+                return new Command(CommandType.LOAD);
             }
-        }
-        if (tractor.getAttachedTrailer() != null) 
-        {
-            Trailer trailer = tractor.getAttachedTrailer();
-
-            // System.out.println("number of bales:" + trailer.getNumBales());
-
-            // if trailer size > 0, go to (0.0, 0.0)
-            if (trailer.getNumBales() == 10) {
-                return Command.createMoveCommand(new Point(0.0, 0.0));
+            else {
+                tractor_mode.put(id,4);
+                return new Command(CommandType.LOAD);
             }
             
-            return new Command(CommandType.DETATCH);
-        }
-        if (tractor.getHasBale())
-        {
-            if (tractor.getLocation().equals(new Point(0.0, 0.0)))
-            {
+        
+            // return to origin
+            case 8:
+            tractor_mode.put(id,9);
+            return Command.createMoveCommand(new Point(0,0));
+
+            case 9:
+            if (close_tractor.contains(id)){
+                tractor_mode.put(id,1);
                 return new Command(CommandType.UNLOAD);
             }
-            else
-            {
-                // find closest trailer
-                Point currentLocation = tractor.getLocation();
-                double maxDistance = Double.POSITIVE_INFINITY;
-                Point desiredLocation = new Point(0.0, 0.0);
-                
-                System.out.println("VALUES:" + midpoints.values());
+            else{
+                tractor_mode.put(id,10);
+                return new Command(CommandType.DETATCH);
+            }
 
-                for (Point midpoint : midpoints.values())
-                {
-                    double distance = Math.hypot(midpoint.x - currentLocation.x, midpoint.y - currentLocation.y);
-                    
-                    if (distance == 0 || distance == 1)
-                    {
-                        // if size of trailer < 10, STACK
-                        return new Command(CommandType.STACK);
-                        // else ATTACH
-                    }
-                    if (distance < maxDistance)
-                    {
-                        maxDistance = distance;
-                        desiredLocation = midpoint;
-                    }
-                }
-                return Command.createMoveCommand(desiredLocation);  
-            }  
-        }
-        else
-        {
-            return new Command(CommandType.LOAD);
-        }
+            case 10:
+            if (dropPlaceNum.get(id) > 0) {
+                tractor_mode.put(id, 11);
+                dropPlaceNum.put(id, dropPlaceNum.get(id) - 1);
+                return new Command(CommandType.UNSTACK);
+            }
+            else {
+                tractor_mode.put(id, 1);
+                close_tractor.add(id);
+                away_tractor.remove(Integer.valueOf(id));
+                return Command.createMoveCommand(new Point(0,0));
+            }
 
+            case 11:
+            tractor_mode.put(id,10);
+            return new Command(CommandType.UNLOAD);
 
-
-        // ORIGINAL GETCOMMAND METHOD
-        // public Command getCommand(Tractor tractor)
-        // {
-        //     if (tractor.getHasBale())
-        //     {
-        //         if (tractor.getLocation().equals(new Point(0.0, 0.0)))
-        //         {
-        //             return new Command(CommandType.UNLOAD);
-        //         }
-        //         else
-        //         {
-        //             return Command.createMoveCommand(new Point(0.0, 0.0));
-        //         }
-        //     }
-        //     else
-        //     {
-        //         if (tractor.getLocation().equals(new Point(0.0, 0.0)))
-        //         {
-        //             if (rand.nextDouble() > 0.5)
-        //             {
-        //                 if (tractor.getAttachedTrailer() == null)
-        //                 {
-        //                     return new Command(CommandType.ATTACH);
-        //                 }
-        //                 else
-        //                 {
-        //                     return new Command(CommandType.DETATCH);
-        //                 }
-        //             }
-        //             else if (bales.size() > 0)
-        //             {
-        //                 Point p = bales.remove(rand.nextInt(bales.size()));
-        //                 return Command.createMoveCommand(p);
-        //             }
-        //             else
-        //             {
-        //                 return null;
-        //             }
-        //         }
-        //         else
-        //         {
-        //             return new Command(CommandType.LOAD);
-        //         }
-        //     }
-        // }
+        }        
+        return Command.createMoveCommand(new Point(0,0));
     }
+
+
+    // public Command getCommand(Tractor tractor)
+    // {
+    //     if (tractor.getHasBale())
+    //     {
+    //         if (tractor.getLocation().equals(new Point(0.0, 0.0)))
+    //         {
+    //             return new Command(CommandType.UNLOAD);
+    //         }
+    //         else
+    //         {
+    //             return Command.createMoveCommand(new Point(0.0, 0.0));
+    //         }
+    //     }
+    //     else
+    //     {
+    //         if (tractor.getLocation().equals(new Point(0.0, 0.0)))
+    //         { 
+    //             if (tractor.getAttachedTrailer()!=null){
+    //             	return new Command(CommandType.DETATCH);
+    //             }
+    //             else
+    //             if (closeBales.size() > 0)
+    //             {
+                    // int randNum = rand.nextInt(closeBales.size());
+                    // Point p = closeBales.remove(randNum);
+                    // bales.remove(randNum);
+                    // return Command.createMoveCommand(p);
+    //             }
+    //             else
+    //             {
+    //                 return null;
+    //             }
+    //         }
+    //         else
+    //         {
+    //             return new Command(CommandType.LOAD);
+    //         }
+    //     }
+    // }
 }
