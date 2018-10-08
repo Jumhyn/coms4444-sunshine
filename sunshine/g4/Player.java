@@ -123,12 +123,10 @@ public class Player implements sunshine.sim.Player {
                         tractor_mode.put(id, 2);
                         return Command.createMoveCommand(close_bales.remove(0));
                     } else {
-                        System.out.println(2);
                         if (far_bales.size() > 0) {
-                            Point p = far_bales.remove(rand.nextInt(far_bales.size()));
-                            away_tractor.put(id, cluster(p));
-                            tractor_mode.put(id, 3);
-                            return Command.createMoveCommand(center(away_tractor.get(id)));
+                            System.out.println("all close bales collected");
+                            tractor_mode.put(id, 2);
+                            return Command.createMoveCommand(far_bales.remove(0));
                         }
                     }
                 } else {
@@ -246,5 +244,10 @@ public class Player implements sunshine.sim.Player {
         List<Point> result = new ArrayList<>();
 //        Collections.sort(bales, (Point p1, Point p2) -> p1.x > p2.y)
         return result;
+    }
+
+    // Determine what the threshold should be.
+    private int getThreshold() {
+        return threshold;
     }
 }
