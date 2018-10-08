@@ -1,4 +1,4 @@
-package sunshine.g6_2;
+package sunshine.g6;
 
 import java.util.List;
 import java.util.Map;

@@ -1,4 +1,4 @@
-package sunshine.g6; 
+package sunshine.g6_2; 
 
 import java.util.List;
 import java.util.Collections;
