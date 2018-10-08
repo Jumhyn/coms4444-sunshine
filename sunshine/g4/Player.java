@@ -81,8 +81,16 @@ public class Player implements sunshine.sim.Player {
                 tractor_mode.put(i, 0);
                 // state 0, needs to detach
             } else {
-                Point p = far_bales.remove(rand.nextInt(far_bales.size()));
-                away_tractor.put(i, cluster(p));
+//                Point p = far_bales.remove(rand.nextInt(far_bales.size()));
+
+                Cluster myCluster = getClusters(far_bales, 10);
+                away_tractor.put(i, myCluster.nodes);
+                for(int j = 0; j < far_bales.size(); j++){
+                    if(myCluster.nodes.contains(far_bales.get(j))){
+                        far_bales.remove(j);
+                    }
+                }
+//                away_tractor.put(i, cluster(p));
                 tractor_mode.put(i, 1);
                 // state 1, ready to go
             }
@@ -131,6 +139,7 @@ public class Player implements sunshine.sim.Player {
                         tractor_mode.put(id, 3);
 //                        away_tractor.put(id, cluster(p));
                         Cluster myCluster = getClusters(far_bales, 10);
+                        if(myCluster.nodes==null)return new Command(CommandType.UNSTACK);
                         away_tractor.put(id, myCluster.nodes);
                         for(int i = 0; i < far_bales.size(); i++){
                             if(myCluster.nodes.contains(far_bales.get(i))){
