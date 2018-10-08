@@ -203,7 +203,7 @@ public class Player implements sunshine.sim.Player {
      * cluster helper functions
      **/
 
-    //return list of cluster centers
+    //return the next cluster list and center
     private List<Point> getClusters(List<Point> bales, int k) {  //k bales per cluster
         List<Point> result = new ArrayList<>();
 //        Collections.sort(bales, (Point p1, Point p2) -> p1.x > p2.y)
