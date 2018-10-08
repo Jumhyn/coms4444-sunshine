@@ -132,9 +132,9 @@ public class Player implements sunshine.sim.Player {
 //                        away_tractor.put(id, cluster(p));
                         Cluster myCluster = getClusters(far_bales, 12);
                         away_tractor.put(id, myCluster.nodes);
-                        for(Point bale : far_bales){
-                            if(myCluster.nodes.contains(bale)){
-                                far_bales.remove(bale);
+                        for(int i = 0; i < far_bales.size(); i++){
+                            if(myCluster.nodes.contains(far_bales.get(i))){
+                                far_bales.remove(i);
                             }
                         }
                         return Command.createMoveCommand(center(away_tractor.get(id)));
