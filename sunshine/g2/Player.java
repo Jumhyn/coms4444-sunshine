@@ -59,7 +59,6 @@ public class Player implements sunshine.sim.Player {
         time = t;
         for (int i = 0; i < numTractors; i++) {
             List<Command> commands = new ArrayList<Command>();
-            commands.add(Command.createMoveCommand(new Point(0.0, 0.0)));
             commandCenter.put(i, commands);
         }
 
