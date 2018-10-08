@@ -43,27 +43,6 @@ public class Player implements sunshine.sim.Player {
     }
 
 
-    public List<Point> cluster(Point p) {
-        List<Double> distances = new ArrayList<Double>();
-        List<Double> clone = new ArrayList<Double>();
-        for (int index = 0; index < far_bales.size(); index++) {
-            double distance = dist(p.x, p.y, far_bales.get(index).x, far_bales.get(index).y);
-            distances.add(distance);
-            clone.add(distance);
-        }
-        Collections.sort(distances);
-        int K = Math.min(far_bales.size(), 10);
-        List<Double> Neighbor = distances.subList(0, K);
-        List<Point> res = new ArrayList<Point>();
-        res.add(p);
-        for (double element : Neighbor) {
-            Integer ind = clone.indexOf(element);
-            res.add(far_bales.get(ind));
-            far_bales.remove(ind);
-        }
-        return res;
-    }
-
     public void init(List<Point> bales, int n, double m, double t) {
         this.bales = bales;
         for (int i = 0; i < bales.size(); i++) {
@@ -81,16 +60,14 @@ public class Player implements sunshine.sim.Player {
                 tractor_mode.put(i, 0);
                 // state 0, needs to detach
             } else {
-//                Point p = far_bales.remove(rand.nextInt(far_bales.size()));
 
                 Cluster myCluster = getClusters(far_bales, 10);
                 away_tractor.put(i, myCluster.nodes);
-                for(int j = 0; j < far_bales.size(); j++){
-                    if(myCluster.nodes.contains(far_bales.get(j))){
-                        far_bales.remove(j);
+                for (Point node : myCluster.nodes) {
+                    if (far_bales.contains(node)) {
+                        far_bales.remove(node);
                     }
                 }
-//                away_tractor.put(i, cluster(p));
                 tractor_mode.put(i, 1);
                 // state 1, ready to go
             }
@@ -135,21 +112,21 @@ public class Player implements sunshine.sim.Player {
                 } else {
                     System.out.println(3);
                     if (far_bales.size() > 0) {
-                        Point p = far_bales.remove(rand.nextInt(far_bales.size()));
                         tractor_mode.put(id, 3);
-//                        away_tractor.put(id, cluster(p));
                         Cluster myCluster = getClusters(far_bales, 10);
-                        if(myCluster.nodes==null)return new Command(CommandType.UNSTACK);
+                        if (myCluster.nodes == null){
+                            return new Command(CommandType.UNSTACK);
+                        }
                         away_tractor.put(id, myCluster.nodes);
-                        for(int i = 0; i < far_bales.size(); i++){
-                            if(myCluster.nodes.contains(far_bales.get(i))){
-                                far_bales.remove(i);
+                        for (Point node : myCluster.nodes) {
+                            if (far_bales.contains(node)) {
+                                far_bales.remove(node);
                             }
                         }
                         return Command.createMoveCommand(center(away_tractor.get(id)));
                     } else {
                         System.out.println(4);
-                        if(close_bales.isEmpty())return new Command(CommandType.UNSTACK);
+                        if (close_bales.isEmpty()) return new Command(CommandType.UNSTACK);
                         away_tractor.remove(id);
                         close_tractor.add(id);
                         tractor_mode.put(id, 2);
@@ -283,9 +260,8 @@ public class Player implements sunshine.sim.Player {
         result.add(pivot);
         myBales.remove(0);
         Collections.sort(myBales, new RelativeEuclideanAscComparator(pivot));
-        for (int i = 0; i < k && i < myBales.size(); i++){
+        for (int i = 0; i < k && i < myBales.size(); i++) {
             result.add(myBales.get(i));
-            System.out.println("DEBUG /// \n\n");
             System.out.println(Euclidean(myBales.get(i), pivot));
         }
         return new Cluster(result, null);
