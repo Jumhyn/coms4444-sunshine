@@ -99,8 +99,19 @@ public class Player implements sunshine.sim.Player {
     private void oneTrip(int tractorID) {
         if (farPoints.size() != 0) {
             Map.Entry<Point, List<Point>> entry = farPoints.entrySet().iterator().next();
+
+            List<Point> cluster = new ArrayList<Point>();
+            cluster.add(entry.getKey());
+            List<Point> nearBales = entry.getValue();
+            for(int i=0; i < nearBales.size();i++){
+              cluster.add(nearBales.get(i));
+            }
+            int minIndex = getNearestToOrigin(cluster);
+            Point nearest = cluster.get(minIndex);
+            cluster.remove(minIndex);
+
             farPoints.remove(entry.getKey());
-            collectWithTrailer(tractorID, entry.getKey(), entry.getValue());
+            collectWithTrailer(tractorID, nearest, cluster);
         }
         else {
             Point p = bales.remove(0);
@@ -205,6 +216,27 @@ public class Player implements sunshine.sim.Player {
         }
 
         return minIndex;
+    }
+
+    public int getNearestToOrigin(List<Point> bales)
+    {
+        Point target = new Point(0.0, 0.0);
+        double minDist = 9999999999.99;
+        int minIndex = 0;
+
+        for (int i=0; i<bales.size(); i++) {
+            Point bale = bales.get(i);
+
+            Double distance = calcEucDistance(target, bale);
+            if (distance < minDist)
+            {
+                minDist = distance;
+                minIndex = i;
+            }
+        }
+
+        return minIndex;
+
     }
 
     public int getFurthestBale()
