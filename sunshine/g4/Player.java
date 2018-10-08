@@ -130,7 +130,7 @@ public class Player implements sunshine.sim.Player {
                         Point p = far_bales.remove(rand.nextInt(far_bales.size()));
                         tractor_mode.put(id, 3);
 //                        away_tractor.put(id, cluster(p));
-                        Cluster myCluster = getClusters(far_bales, 12);
+                        Cluster myCluster = getClusters(far_bales, 11);
                         away_tractor.put(id, myCluster.nodes);
                         for(int i = 0; i < far_bales.size(); i++){
                             if(myCluster.nodes.contains(far_bales.get(i))){
@@ -271,7 +271,7 @@ public class Player implements sunshine.sim.Player {
         Collections.sort(bales, new EuclideanDescComparator()); // change to max() for optimization
         Point pivot = bales.get(0);
         Collections.sort(bales, new RelativeEuclideanAscComparator(pivot));
-        for (int i = 1; i < k && i < bales.size(); i++){
+        for (int i = 0; i < k && i < bales.size(); i++){
             result.add(bales.get(i));
         }
         return new Cluster(result, null);
