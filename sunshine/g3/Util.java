@@ -77,7 +77,7 @@ public class Util {
         return centroidOrigin;
     }
 
-    
+    // TODO: weights (2.5 for origin)
     public static Point weiszfeld(List<Point> pointList)
     {
         List<Double> weightList = getWeightList(pointList); 
@@ -106,5 +106,116 @@ public class Util {
             med_prev = med_next;
         }
         return med_next;
+    }
+
+    // given 11 points, calculator time taken for tracker WITH trailer 
+    // 10 m/s * distance + detach(60) + attach(60) + detach load, unload(10 * 2) 
+    public static Double timeWithTrailer(List<Point> pointList) {
+        Double time;
+        Point origin = new Point(0.0, 0.0);
+        Point centroid = Util.centroidTrailer(pointList);
+        System.out.println(centroid.x + " " + centroid.y);
+        // from origin to centroid
+        time = 2 * Util.distance(centroid, origin)/4 + 60 * 3; // 2 * distance/speed + detach
+        for (Point p : pointList) {
+            // from centroid to point  
+            time += 2 * Util.distance(p, centroid)/4; //
+            time += 10 * 4; // load, stack, unstack, unload 
+        }
+        return time;
+    }
+
+    // given 11 points, calculator time taken for tracker WITHOUT trailer 
+    // 4 m/s * distance + detach, attach, detach (60 * 3) + load, stack, unstack, unload (10 * 4) 
+    public static Double timeWithoutTrailer(List<Point> pointList) {
+        Double time = 0.0;;
+        Point origin = new Point(0.0, 0.0);
+        time += 60; // detach at origin
+        for (Point p : pointList) {
+            time += 2 * Util.distance(p, origin)/10;
+            time += 10 * 2; // load, unload 
+        }
+        return time;
+    }
+
+    public static List<Point> nearest_Bales(Point p, List<Point> hb_locations, int n){
+    	//declaring hash map and point id integer variable to keep track of distances
+    	Map<Integer,Point> pointId_point = new HashMap();
+    	Map<Integer,Double> pointId_distance = new HashMap();
+
+    	List<Point> nearestPoints = new ArrayList<Point>();
+
+    	Integer id = new Integer(0);
+    	for (Point hb_point:hb_locations){
+    		pointId_point.put(id,hb_point);
+    		pointId_distance.put(id,distance(p,hb_point));
+    		id ++;
+    	}
+
+		//sorting hash map by values
+		Map<Integer, Double> sortedMap = pointId_distance
+		.entrySet()
+		.stream()
+		.sorted(comparingByValue())
+		.collect(
+			toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2,LinkedHashMap::new));
+
+		int j = 0 ;
+		for (Map.Entry<Integer, Double> entry : sortedMap.entrySet())
+		{
+			if (j >= n){
+				break;
+			}
+    		// System.out.println(entry.getKey() + "/" + entry.getValue());
+
+    		Point keyPoint = pointId_point.get(entry.getKey());
+
+			System.out.println("keyPoint: " + keyPoint.x + " " + keyPoint.y);
+			nearestPoints.add(keyPoint);
+
+			j++;
+		}
+		return nearestPoints;
+    }
+
+    public static List<Point> nearest_Bales(Point p, List<Point> hb_locations){
+    	//declaring hash map and point id integer variable to keep track of distances
+    	Map<Integer,Point> pointId_point = new HashMap();
+    	Map<Integer,Double> pointId_distance = new HashMap();
+
+    	int n = 11;
+
+    	List<Point> nearestPoints = new ArrayList<Point>();
+
+    	Integer id = new Integer(0);
+    	for (Point hb_point:hb_locations){
+
+    		pointId_point.put(id,hb_point);
+    		pointId_distance.put(id,distance(p,hb_point));
+    		id ++;
+    	}
+
+		//sorting hash map by values
+		Map<Integer, Double> sortedMap = pointId_distance
+		.entrySet()
+		.stream()
+		.sorted(comparingByValue())
+		.collect(
+			toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2,LinkedHashMap::new));
+
+		int j = 0;
+		for (Map.Entry<Integer, Double> entry : sortedMap.entrySet())
+		{
+			if (j >= n){
+				break;
+			}
+    		// System.out.println(entry.getKey() + "/" + entry.getValue());
+    		Point keyPoint = pointId_point.get(entry.getKey());
+
+			System.out.println("keyPoint: " + keyPoint.x + " " + keyPoint.y);
+			nearestPoints.add(keyPoint);
+			j++;
+		}
+		return nearestPoints;
     }
 }
