@@ -25,6 +25,7 @@ public class Player implements sunshine.sim.Player {
     private Map<Integer, List<Point>> away_tractor;
     private List<Integer> close_tractor;
     private Map<Integer, Point> trailer_pos;
+    private Map<Integer, Integer> trailer_with_bales;
 
     private int threshold = 450;
     private Random rand;
@@ -39,6 +40,7 @@ public class Player implements sunshine.sim.Player {
 
         trailer_pos = new HashMap<Integer, Point>();
         tractor_mode = new HashMap<Integer, Integer>();
+        trailer_with_bales = new HashMap<Integer, Integer>(); 
     }
 
     public double dist(double x1, double y1, double x2, double y2) {
@@ -117,19 +119,31 @@ public class Player implements sunshine.sim.Player {
             case 1:
                 if (close_tractor.contains(id)) {
                     if (close_bales.size() > 0) {
+                        System.out.println(1);
                         tractor_mode.put(id, 2);
                         return Command.createMoveCommand(close_bales.remove(0));
                     } else {
                         if (far_bales.size() > 0) {
-                            Point p = far_bales.remove(rand.nextInt(far_bales.size()));
-                            away_tractor.put(id, cluster(p));
-                            tractor_mode.put(id, 3);
-                            return Command.createMoveCommand(center(away_tractor.get(id)));
+                            System.out.println("all close bales collected");
+                            tractor_mode.put(id, 2);
+                            return Command.createMoveCommand(far_bales.remove(0));
                         }
                     }
                 } else {
-                    tractor_mode.put(id, 3);
-                    return Command.createMoveCommand(center(away_tractor.get(id)));
+                    System.out.println(3);
+                    if (far_bales.size() > 0){
+                        Point p = far_bales.remove(rand.nextInt(far_bales.size()));
+                        tractor_mode.put(id, 3);
+                        away_tractor.put(id, cluster(p));
+                        return Command.createMoveCommand(center(away_tractor.get(id)));
+                    }
+                    else{
+                        System.out.println(4);
+                        away_tractor.remove(id);
+                        close_tractor.add(id);
+                        tractor_mode.put(id, 2);
+                        return Command.createMoveCommand(close_bales.remove(0));
+                    }
                 }
 
                 // load up close bay
@@ -179,22 +193,44 @@ public class Player implements sunshine.sim.Player {
                 tractor_mode.put(id, 9);
                 return Command.createMoveCommand(new Point(0, 0));
 
+                // unload first
             case 9:
                 if (close_tractor.contains(id)) {
                     tractor_mode.put(id, 1);
                     return new Command(CommandType.UNLOAD);
-                } else {
-                    if (tractor.getAttachedTrailer().getNumBales() == 0) {
-                        tractor_mode.put(id, 1);
-                    } else {
+                } 
+                else {
+                    if (tractor.getAttachedTrailer()==null){
+                        tractor_mode.put(id, 11);
+                    }
+                    else {
                         tractor_mode.put(id, 10);
                     }
                     return new Command(CommandType.UNLOAD);
+                } 
 
-                }
+                // detach the trailer
             case 10:
-                tractor_mode.put(id, 9);
-                return new Command(CommandType.UNSTACK);
+                tractor_mode.put(id, 11);    
+                trailer_with_bales.put(id,10);
+                return new Command(CommandType.DETATCH);
+
+            case 11:
+                if (trailer_with_bales.get(id) > 1){
+                    tractor_mode.put(id, 9);    
+                    trailer_with_bales.put(id, trailer_with_bales.get(id) - 1);
+                    return new Command(CommandType.UNSTACK);
+                }                    
+                else {
+                    tractor_mode.put(id, 12);    
+                    trailer_with_bales.remove(id);
+                    return new Command(CommandType.UNSTACK);
+                }
+
+            case 12:
+                tractor_mode.put(id,1);
+                return new Command(CommandType.ATTACH);                    
+
         }
         return Command.createMoveCommand(new Point(0, 0));
     }
@@ -208,5 +244,10 @@ public class Player implements sunshine.sim.Player {
         List<Point> result = new ArrayList<>();
 //        Collections.sort(bales, (Point p1, Point p2) -> p1.x > p2.y)
         return result;
+    }
+
+    // Determine what the threshold should be.
+    private int getThreshold() {
+        return threshold;
     }
 }
