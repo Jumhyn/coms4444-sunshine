@@ -3,7 +3,11 @@ package sunshine.g7;
 import java.util.Collection;
 import java.util.ArrayList;
 import java.lang.Math;
+import java.lang.Double;
 
+import sunshine.sim.Point;
+import sunshine.sim.Tractor;
+import sunshine.sim.Trailer;
 import sunshine.sim.Point;
 
 /*
@@ -14,6 +18,8 @@ class PointClump extends ArrayList<Point> {
 
     public Point dropPoint;
     public boolean barnClump;
+    public Tractor tractor;
+    public Trailer trailer;
 
     private double accuracy = 1;
     
@@ -118,9 +124,22 @@ class PointClump extends ArrayList<Point> {
 	return est;
     }
     
+    public Point findCloset(Point geoMean){
+    	Point ret=this.get(0);
+    	double minDist=Double.MAX_VALUE;
+    	for (Point i : this){
+    		if (((geoMean.x-i.x)*(geoMean.x-i.x)+(geoMean.y-i.y)*(geoMean.y-i.y))<minDist)
+    		{
+    			minDist=(geoMean.x-i.x)*(geoMean.x-i.x)+(geoMean.y-i.y)*(geoMean.y-i.y);
+    			ret = i;
+    		}
+    	}
+    	return ret;
+    }
     public void setDropPoint() {
 	//System.out.println("setting drop point");
 	dropPoint = geometricMean();
+	dropPoint=findCloset(dropPoint);
 	System.out.println("dropPoint is: " + dropPoint.x + ", " + dropPoint.y);
     }
     
