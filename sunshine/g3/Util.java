@@ -1,9 +1,17 @@
 package sunshine.g3;
 
+import java.util.Map;
 import java.util.List;
+import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Random;
+
+import static java.util.stream.Collectors.*;
+import static java.util.Map.Entry.*;
 
 import sunshine.sim.Point;
+import sunshine.sim.Harvester;
 
 
 public class Util {
@@ -110,7 +118,8 @@ public class Util {
 
     // given 11 points, calculator time taken for tracker WITH trailer 
     // 10 m/s * distance + detach(60) + attach(60) + detach load, unload(10 * 2) 
-    public static Double timeWithTrailer(List<Point> pointList) {
+    public static Double timeWithTrailer(List<Point> pointList) 
+    {
         Double time;
         Point origin = new Point(0.0, 0.0);
         Point centroid = Util.centroidTrailer(pointList);
@@ -127,7 +136,8 @@ public class Util {
 
     // given 11 points, calculator time taken for tracker WITHOUT trailer 
     // 4 m/s * distance + detach, attach, detach (60 * 3) + load, stack, unstack, unload (10 * 4) 
-    public static Double timeWithoutTrailer(List<Point> pointList) {
+    public static Double timeWithoutTrailer(List<Point> pointList) 
+    {
         Double time = 0.0;;
         Point origin = new Point(0.0, 0.0);
         time += 60; // detach at origin
@@ -138,15 +148,55 @@ public class Util {
         return time;
     }
 
-    public static List<Point> nearest_Bales(Point p, List<Point> hb_locations, int n){
+	public static Point furthestPoint(List<Point> hb_locations){
+
+		Point origin = new Point(0.0,0.0);
+		Point furthestPoint = new Point(0.0,0.0);
+		Double furthestDistance = 0.0;
+		Double candidate;
+
+		// List<Double> distances = new ArrayList<Double>();
+		
+
+
+		for (Point p:hb_locations){
+			
+			candidate = distance(origin,p);
+
+
+			if (candidate > furthestDistance) {
+				furthestPoint = p;
+				furthestDistance = candidate;
+			}
+
+		}
+
+		return furthestPoint;
+	}
+
+    public static class HBLists {
+        public List<Point> toLoad;
+        public List<Point> other;
+
+        public HBLists(List<Point> first, List<Point> second)
+        {
+            this.toLoad = first;
+            this.other = second;
+        }
+    }
+
+    public static HBLists nearest_Bales(Point p, List<Point> hb_locations, int n)
+    {
     	//declaring hash map and point id integer variable to keep track of distances
     	Map<Integer,Point> pointId_point = new HashMap();
     	Map<Integer,Double> pointId_distance = new HashMap();
 
     	List<Point> nearestPoints = new ArrayList<Point>();
+        List<Point> otherPoints = new ArrayList<Point>();
 
     	Integer id = new Integer(0);
-    	for (Point hb_point:hb_locations){
+    	for (Point hb_point: hb_locations)
+        {
     		pointId_point.put(id,hb_point);
     		pointId_distance.put(id,distance(p,hb_point));
     		id ++;
@@ -163,22 +213,67 @@ public class Util {
 		int j = 0 ;
 		for (Map.Entry<Integer, Double> entry : sortedMap.entrySet())
 		{
-			if (j >= n){
-				break;
-			}
-    		// System.out.println(entry.getKey() + "/" + entry.getValue());
-
     		Point keyPoint = pointId_point.get(entry.getKey());
 
-			System.out.println("keyPoint: " + keyPoint.x + " " + keyPoint.y);
-			nearestPoints.add(keyPoint);
+			if (j < n)
+            {
+    		    //System.out.println(entry.getKey() + "/" + entry.getValue());
 
-			j++;
+			    //System.out.println("keyPoint: " + keyPoint.x + " " + keyPoint.y);
+			    nearestPoints.add(keyPoint);
+			    j++;
+			}
+            else if (j >= n)
+            {
+    		    //System.out.println(entry.getKey() + "/" + entry.getValue());
+
+			    //System.out.println("keyPoint: " + keyPoint.x + " " + keyPoint.y);
+			    otherPoints.add(keyPoint);
+			    j++;
+            }
 		}
-		return nearestPoints;
+        HBLists hbl = new HBLists(nearestPoints, otherPoints);
+		return hbl;
     }
 
-    public static List<Point> nearest_Bales(Point p, List<Point> hb_locations){
+    public static HBLists nearest_Bales(List<Point> hb_locations, int n)
+    {
+        Point fp = furthestPoint(hb_locations);
+        return nearest_Bales(fp, hb_locations, n);
+    }
+
+    public static HBLists nearest_Bales(Point p, List<Point> hb_locations)
+    {
+        return nearest_Bales(p, hb_locations, 11);
+    }
+
+    public static HBLists nearest_Bales(List<Point> hb_locations)
+    {
+        Point fp = furthestPoint(hb_locations);
+        return nearest_Bales(fp, hb_locations, 11);
+    }
+
+    /*
+    public static void main(String[] args)
+    {
+        Random rand = new Random();
+        List<Point> baleLocations = Harvester.harvest(rand, 100);
+        System.out.println(baleLocations.size());
+
+        Point p = furthestPoint(baleLocations);
+        System.out.println(p.x + " " + p.y);
+
+        HBLists nearestPoints = nearest_Bales(p, baleLocations);
+        System.out.println(nearestPoints.toLoad.size());
+        System.out.println(nearestPoints.toLoad);
+        System.out.println(nearestPoints.other.size());
+        System.out.println(nearestPoints.other);
+    }
+    */
+
+    /*
+    public static List<Point> nearest_Bales(Point p, List<Point> hb_locations)
+    {
     	//declaring hash map and point id integer variable to keep track of distances
     	Map<Integer,Point> pointId_point = new HashMap();
     	Map<Integer,Double> pointId_distance = new HashMap();
@@ -186,9 +281,11 @@ public class Util {
     	int n = 11;
 
     	List<Point> nearestPoints = new ArrayList<Point>();
+        List<Point> otherPoints = new ArrayList<Point>();
 
     	Integer id = new Integer(0);
-    	for (Point hb_point:hb_locations){
+    	for (Point hb_point:hb_locations)
+        {
 
     		pointId_point.put(id,hb_point);
     		pointId_distance.put(id,distance(p,hb_point));
@@ -206,16 +303,27 @@ public class Util {
 		int j = 0;
 		for (Map.Entry<Integer, Double> entry : sortedMap.entrySet())
 		{
-			if (j >= n){
-				break;
-			}
-    		// System.out.println(entry.getKey() + "/" + entry.getValue());
     		Point keyPoint = pointId_point.get(entry.getKey());
 
-			System.out.println("keyPoint: " + keyPoint.x + " " + keyPoint.y);
-			nearestPoints.add(keyPoint);
-			j++;
+			if (j < n)
+            {
+    		    //System.out.println(entry.getKey() + "/" + entry.getValue());
+
+			    //System.out.println("keyPoint: " + keyPoint.x + " " + keyPoint.y);
+			    nearestPoints.add(keyPoint);
+			    j++;
+			}
+            else if (j >= n)
+            {
+    		    //System.out.println(entry.getKey() + "/" + entry.getValue());
+
+			    //System.out.println("keyPoint: " + keyPoint.x + " " + keyPoint.y);
+			    otherPoints.add(keyPoint);
+			    j++;
+            }
 		}
-		return nearestPoints;
+        HBLists hbl = new HBLists(nearestPoints, otherPoints);
+		return hbl;
     }
+    */
 }
