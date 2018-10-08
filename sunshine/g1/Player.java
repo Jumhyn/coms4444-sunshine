@@ -2,17 +2,21 @@ package sunshine.g1;
 
 import java.util.List;
 import java.util.Collections;
-import java.util.List;
 import java.util.Random;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedList;
 
 import sunshine.sim.Command;
 import sunshine.sim.Tractor;
 import sunshine.sim.CommandType;
 import sunshine.sim.Point;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
+import sunshine.g1.weiszfeld.WeightedPoint;
+import sunshine.g1.weiszfeld.WeiszfeldAlgorithm;
+import sunshine.g1.weiszfeld.Input;
+import sunshine.g1.weiszfeld.Output;
 
 public class Player implements sunshine.sim.Player {
     // Random seed of 42.
@@ -20,7 +24,6 @@ public class Player implements sunshine.sim.Player {
     private Random rand;
     private int num_tractors;
     private double time_budget;
-
     
     List<Point> bales, copy_bales;
     ArrayList<List<Point>> scan_zones;
@@ -271,6 +274,24 @@ public class Player implements sunshine.sim.Player {
 
         public Point getClusterCenter(List<Point> cluster)
         {
+            // We use Weiszfeld Algorithm to find the weighted geometric median
+        	List<WeightedPoint> weightedPoints = new LinkedList<WeightedPoint>();
+        	for (Point p : cluster) {
+        		weightedPoints.add(new WeightedPoint(0.2D, p.x, p.y));
+        	}
+        	
+        	weightedPoints.add(new WeightedPoint(0.5D, 0.0D, 0.0D));
+        	
+            Input input = new Input();
+            input.setDimension(2);
+            input.setPoints(weightedPoints);
+            input.setPermissibleError(0.00001);
+            
+            double[] centerCoordinate = WeiszfeldAlgorithm.process(input).getPointCoordinate();
+            
+            return new Point(centerCoordinate[0], centerCoordinate[1]);
+            
+        	/*
             Point center = new Point(0,0);
 
             for(int i=0;i<cluster.size();i++)
@@ -284,8 +305,9 @@ public class Player implements sunshine.sim.Player {
                 center.x/=cluster.size();
                 center.y/=cluster.size();
             }
-
+            
             return center;
+            */
         }
     
     
@@ -497,7 +519,6 @@ public class Player implements sunshine.sim.Player {
            }
         
     }
-
 
 
 
