@@ -2,7 +2,7 @@ package sunshine.g7;
 
 import java.util.List;
 import java.util.Collections;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.HashMap;
 import java.util.PriorityQueue;
@@ -19,7 +19,8 @@ public class Player implements sunshine.sim.Player {
     private int seed = 42;
     private Random rand;
     
-    PriorityQueue<Point> bales;
+    PriorityQueue<Point> near;
+    List<PointClump> far;
 
     public Player() {
         rand = new Random(seed);
@@ -27,7 +28,7 @@ public class Player implements sunshine.sim.Player {
     
     public void init(List<Point> bales, int n, double m, double t)
     {
-    	this.bales = new PriorityQueue<Point>(bales.size(),
+    	this.near = new PriorityQueue<Point>(bales.size(),
     	    new Comparator(){
 		       public int compare(Object o1, Object o2) {
 		       	    Point p1 = (Point) o1;
@@ -36,10 +37,19 @@ public class Player implements sunshine.sim.Player {
 		       }
         	} 
     	);
-    	this.bales.addAll(bales);
+    	this.near.addAll(bales);
 
     	AbstractSplitter splitter = new CircleLineSplitter();
-        List<PointClump> clumps = splitter.splitUpPoints(PointUtils.pollNElements(this.bales, 11*n));
+    	this.far = new ArrayList<PointClump>();
+
+    	Point farthest = this.near.peek();
+    	while (farthest != null && Math.hypot(farthest.x, farthest.y) > 300 /* Thanks Quincy! */ ) {
+    		this.far.addAll(splitter.splitUpPoints(PointUtils.pollNElements(this.near, 11*n)));
+    		farthest = this.near.peek();
+    	}
+
+    	System.out.println(this.near.size());
+    	System.out.println(this.far.size());
     }
     
     public Command getCommand(Tractor tractor)
@@ -75,10 +85,10 @@ public class Player implements sunshine.sim.Player {
                 	return new Command(CommandType.DETATCH);
                 }
                 else
-                if (bales.size() > 0)
+                if (near.size() > 0)
                 {
                     //Point p = bales.remove(rand.nextInt(bales.size()));
-                    Point p = bales.poll();
+                    Point p = near.poll();
                     return Command.createMoveCommand(p);
                 }
                 else

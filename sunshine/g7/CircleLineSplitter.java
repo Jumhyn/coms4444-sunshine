@@ -8,7 +8,7 @@ import java.util.ArrayList;
 
 import sunshine.sim.Point;
 
-class CircleLineSplitter implements AbstractSplitter {
+class  CircleLineSplitter implements AbstractSplitter {
 
 	public List<PointClump> splitUpPoints(Collection<? extends Point> points) {
 		List<PointClump> ret = new ArrayList<PointClump>(points.size()/11);
