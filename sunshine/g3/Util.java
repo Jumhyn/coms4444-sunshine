@@ -123,7 +123,7 @@ public class Util {
         Double time;
         Point origin = new Point(0.0, 0.0);
         Point centroid = Util.centroidTrailer(pointList);
-        System.out.println(centroid.x + " " + centroid.y);
+        //System.out.println(centroid.x + " " + centroid.y);
         // from origin to centroid
         time = 2 * Util.distance(centroid, origin)/4 + 60 * 3; // 2 * distance/speed + detach
         for (Point p : pointList) {
@@ -174,18 +174,18 @@ public class Util {
 		return furthestPoint;
 	}
 
-    public static class HBLists {
-        public List<Point> toLoad;
-        public List<Point> other;
+    public static class TwoList {
+        public List<Point> first;
+        public List<Point> second;
 
-        public HBLists(List<Point> first, List<Point> second)
+        public TwoList(List<Point> f, List<Point> s)
         {
-            this.toLoad = first;
-            this.other = second;
+            this.first = f;
+            this.second = s;
         }
     }
 
-    public static HBLists nearest_Bales(Point p, List<Point> hb_locations, int n)
+    public static TwoList nearestBales(Point p, List<Point> hb_locations, int n)
     {
     	//declaring hash map and point id integer variable to keep track of distances
     	Map<Integer,Point> pointId_point = new HashMap();
@@ -232,25 +232,29 @@ public class Util {
 			    j++;
             }
 		}
-        HBLists hbl = new HBLists(nearestPoints, otherPoints);
-		return hbl;
+        //System.out.println(nearestPoints.size());
+        //System.out.println(otherPoints.size());
+        //System.out.println(hb_locations.size());
+
+        TwoList two = new TwoList(nearestPoints, otherPoints);
+		return two;
     }
 
-    public static HBLists nearest_Bales(List<Point> hb_locations, int n)
+    public static TwoList nearestBales(List<Point> hb_locations, int n)
     {
         Point fp = furthestPoint(hb_locations);
-        return nearest_Bales(fp, hb_locations, n);
+        return nearestBales(fp, hb_locations, n);
     }
 
-    public static HBLists nearest_Bales(Point p, List<Point> hb_locations)
+    public static TwoList nearestBales(Point p, List<Point> hb_locations)
     {
-        return nearest_Bales(p, hb_locations, 11);
+        return nearestBales(p, hb_locations, 11);
     }
 
-    public static HBLists nearest_Bales(List<Point> hb_locations)
+    public static TwoList nearestBales(List<Point> hb_locations)
     {
         Point fp = furthestPoint(hb_locations);
-        return nearest_Bales(fp, hb_locations, 11);
+        return nearestBales(fp, hb_locations, 11);
     }
 
     /*
@@ -263,7 +267,7 @@ public class Util {
         Point p = furthestPoint(baleLocations);
         System.out.println(p.x + " " + p.y);
 
-        HBLists nearestPoints = nearest_Bales(p, baleLocations);
+        TwoList nearestPoints = nearest_Bales(p, baleLocations);
         System.out.println(nearestPoints.toLoad.size());
         System.out.println(nearestPoints.toLoad);
         System.out.println(nearestPoints.other.size());
@@ -322,8 +326,20 @@ public class Util {
 			    j++;
             }
 		}
-        HBLists hbl = new HBLists(nearestPoints, otherPoints);
-		return hbl;
+        TwoList two = new TwoList(nearestPoints, otherPoints);
+		return two;
     }
     */
+
+    public static class BalesProtocol
+    {
+        public List<Point> balesLocations;
+        public Integer protocol;
+
+        public BalesProtocol(List<Point> b, Integer p)
+        {
+            this.balesLocations = b;
+            this.protocol = p;
+        }
+    }
 }

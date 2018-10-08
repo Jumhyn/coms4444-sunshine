@@ -10,9 +10,10 @@ import sunshine.sim.CommandType;
 import sunshine.sim.Point;
 import sunshine.sim.Trailer;
 
+import sunshine.g3.Util;
 import sunshine.g3.Util.*;
 
-public class RandomAllTrailers {
+public class CentroidRandomAllTrailers {
     public static Command getCommand(Random rand,
                                      Tractor tractor,
                                      List<Point> bales,
@@ -28,16 +29,7 @@ public class RandomAllTrailers {
         Point trailerLoc;
 
         List<Point> assignedBales = balesAssignments.get(Id).balesLocations;
-
-        //if (balesAssignments.containsKey(Id))
-        //{
-        //    assignedBales = balesAssignments.get(Id).bales;
-        //}
-        //else
-        //{
-        //    assignedBales = bales;
-        //}
-    
+   
         if (tractor.getAttachedTrailer() == null)
         {
             trailer = pairs.get(Id);
@@ -68,7 +60,9 @@ public class RandomAllTrailers {
         if (!hb && atOrigin && attached && numBales == 0 && areBalesRem)
         {
             // TODO: random
-            Point p = assignedBales.remove(rand.nextInt(assignedBales.size()));
+            Point p = Util.centroidTrailer(assignedBales);
+            //Point p = assignedBales.remove(rand.nextInt(assignedBales.size()));
+            assignedBales.remove(rand.nextInt(assignedBales.size()));
             preemptive.put(Id, p);
             return Command.createMoveCommand(p);
         }
