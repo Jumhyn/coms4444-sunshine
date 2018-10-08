@@ -59,7 +59,7 @@ public class Player implements sunshine.sim.Player {
         time = t;
         for (int i = 0; i < numTractors; i++) {
             List<Command> commands = new ArrayList<Command>();
-            commands.add(new Command(CommandType.DETATCH));
+            commands.add(Command.createMoveCommand(new Point(0.0, 0.0)));
             commandCenter.put(i, commands);
         }
 
@@ -77,6 +77,15 @@ public class Player implements sunshine.sim.Player {
             else {
                 this.bales.add(0, p);
                 break;
+            }
+        }
+
+        int numFarPoints = farPoints.size();
+        if (numFarPoints < numTractors) {
+            for (int i = numFarPoints; i < numTractors; i++) {
+                List<Command> commands = new ArrayList<Command>();
+                commands.add(new Command(CommandType.DETATCH));
+                commandCenter.put(i, commands);
             }
         }
 
