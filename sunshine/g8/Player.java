@@ -27,7 +27,7 @@ public class Player implements sunshine.sim.Player
 	private List<Point> tractor_bales;
 	private List<Point> trailer_bales;
 	
-	// Make list of centroids
+	// Make list of centroids, Deposit points for the trailer
 	private List<Point> centroids = new ArrayList<Point>();
 	
 	private boolean is_not_removed = true;
@@ -172,7 +172,7 @@ public class Player implements sunshine.sim.Player
 				
 				// If not empty, GO TO LOCATION
 			}
-			// Move back to the barn!
+			// Farming for Bale!
 			else
 			{
 				// 2- unattach trailer
@@ -184,10 +184,12 @@ public class Player implements sunshine.sim.Player
 				if(tractor.getAttachedTrailer() != null)
 				{
 					// Just in case the bails for trailer are done! Go Back NOW!
+					/*
 					if(trailer_bales == null || trailer_bales.isEmpty())
 					{
 						return Command.createMoveCommand(new Point(0.0, 0.0));
 					}
+					*/
 					
 					// Do you have 11th bale? If so, time to go?
 					if(tractor.getHasBale())
@@ -203,15 +205,28 @@ public class Player implements sunshine.sim.Player
 				}
 				else
 				{
-					// It is detached, so right now just stack everything now!
+					// It is detached, 
+					// In this case, the trailer is full! Move out!
 					if(haystack == 10)
 					{
-						++haystack;
-						return new Command(CommandType.STACK);
+						return new Command(CommandType.ATTACH);
 					}
+					// Keep farming!
 					else
 					{
-						return new Command(CommandType.ATTACH);
+						if(tractor.getHasBale())
+						{
+							++haystack;
+							return new Command(CommandType.STACK);
+						}
+						else
+						{
+							// If you are at Trailer...Go get Bale!
+							
+							// If you are NOT at Trailer...LOAD IT!
+							Point p = tractor_bales.remove(tractor_bales.size()-1);
+							return Command.createMoveCommand(p);
+						}
 					}
 				}
 			}
