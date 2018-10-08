@@ -135,6 +135,7 @@ public class Simulator {
     private static PriorityQueue<CommandWrapper> pendingCommands;
     
     private static double elapsedSeconds = 0.0;
+    private static double timeThreshold = 0.0;
     private static double timeStep = -1.0;
 
     public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException {
@@ -206,19 +207,20 @@ public class Simulator {
                 elapsedSeconds = t;
                 break;
             }
-            
+
             if (timeStep < 0.0) {
-                elapsedSeconds = pendingCommands.peek().completionTime;
+                timeThreshold = pendingCommands.peek().completionTime;
             } else {
-                elapsedSeconds += timeStep;
+                timeThreshold += timeStep;
             }
-            while (pendingCommands.peek().completionTime <= elapsedSeconds) {
+            while (pendingCommands.peek().completionTime <= timeThreshold) {
                 CommandWrapper command = pendingCommands.poll();
                 if (command.completionTime > t)
                 {
                     elapsedSeconds = t;
                     break;
                 }
+                elapsedSeconds = command.completionTime;
                 handleCompletedCommand(command, command.tractor);
                 if (numBales == 0)
                 {
@@ -251,10 +253,10 @@ public class Simulator {
         if (gui)
         {
             gui(server, state(fps));
-        }
-        while (true)
-        {
-            
+            while (true)
+            {
+
+            }
         }
     }
     
