@@ -128,7 +128,8 @@ public class Player implements sunshine.sim.Player {
                             }
                         }
                         Collections.sort(far_bales, new EuclideanDescComparator());
-                        return Command.createMoveCommand(center(away_tractor.get(id)));
+//                        return Command.createMoveCommand(center(away_tractor.get(id)));
+                        return Command.createMoveCommand(myCluster.center);
                     } else {
                         if (close_bales.isEmpty()) return new Command(CommandType.UNSTACK);
                         away_tractor.remove(id);
@@ -138,7 +139,7 @@ public class Player implements sunshine.sim.Player {
                     }
                 }
 
-                // load up close bay
+                // load up close bayz
             case 2:
                 tractor_mode.put(id, 8);
                 return new Command(CommandType.LOAD);
