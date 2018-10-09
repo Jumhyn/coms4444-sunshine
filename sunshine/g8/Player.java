@@ -84,31 +84,38 @@ public class Player implements sunshine.sim.Player
                 for (int j = i; j < n; j++)
                 {
                     // Edge case: last batch has less than 11 bales
-                    if(j >= n)
+                    if(j >= full.size())
                     {
+                        return split;
                         break;
                     }
                     chunk.add(full.get(j));
                 }
                 split.add(chunk);
             }
+            return split;
         }
 
         // Split the Tractor and Trailer bale depending on the index.
-        public void split_trailer_tractor_batch(List<Point> bales)
+        public void split_trailer_tractor_batch(List<Point> bales, double split)
         {
-
+            // split determines the fraction going to tractor.
+            // e.g 1/2 means 1/2 tractor 1/2 trailer
+            // e.g 1/3 means 1/3 tractor and 2/3 trailer
+            int split_idx = (int) bales.length * split;
+            this.trailer_bales = bales.subList(0, split_idx);
+            this.tractor_bales = bales.subList(split_idx, bales.length);
         }
 
 	public void init(List<Point> bales, int n, double m, double t)
 	{
 		// Organize how bales will be selected by tractors
-		Collections.sort(bales, pointComparator);
-		// Break this up
-		// 1- 1/2 closest to tractor
+		// Min to max distance
+                Collections.sort(bales, pointComparator);
+		
+                // 1- 1/2 closest to tractor
 		// 2- 1/2 closest to trailer
-		this.tractor_bales = bales;
-		this.trailer_bales = null;
+		split_trailer_tractor_batch(bales, 0.5);
 		
 		this.n_tractors = n;
 		this.dimensions = m;
