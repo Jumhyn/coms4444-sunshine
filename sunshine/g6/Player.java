@@ -34,6 +34,12 @@ public class Player implements sunshine.sim.Player {
     Map<Integer, Integer> tractor_mode = new HashMap<Integer, Integer>();
 
     List<Integer> leftover_tractor = new ArrayList<Integer>();
+    List<Point> dropPoints = new ArrayList<Point>();
+    List<Point> drop = new ArrayList<Point>();
+
+
+    private Map<Point, Double> balePointsSorted;
+    private HashMap<Point, Double> balePointsForSorting;
 
     public Player() {
         rand = new Random(seed);
@@ -42,7 +48,7 @@ public class Player implements sunshine.sim.Player {
         return Math.hypot(x1 - x2, y1 - y2);
     }
     public List<Point> dropTrailers(){
-        List<Point> dropPoints = new ArrayList<Point>();
+        
         for(int i=0;i<90;i+=circleArc){
             double center_x = 0.0;
             double center_y = 0.0;
@@ -94,6 +100,33 @@ public class Player implements sunshine.sim.Player {
         //     System.out.println(tractor); 
         // }
 
+        // ##############################################################
+        // # Sort the bale points according to distance from the origin #
+        // ##############################################################
+
+        //balePointsSorted = new ArrayList<Point>();
+        balePointsForSorting = new HashMap<Point, Double>();
+        double dist = 0.0;
+        for (Point p : bales) {
+            dist = Math.hypot(p.x - 0.0, p.y - 0.0);
+            balePointsForSorting.put(p, dist); //assuming there cannot be more than 1 bale of hay in a position
+            balePointsSorted = balePointsForSorting
+                .entrySet()
+                .stream()
+                .sorted(comparingByValue())
+                .collect(
+                    toMap(e -> e.getKey(), e -> e.getValue(), (e1,e2) -> e2,
+                        LinkedHashMap::new));
+            balePointsSorted = balePointsForSorting
+                .entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByValue())
+                .collect(
+                    toMap(Map.Entry::getKey, Map.Entry::getValue, (e1,e2) -> e2,
+                        LinkedHashMap::new));
+        } //https://www.javacodegeeks.com/2017/09/java-8-sorting-hashmap-values-ascending-descending-order.html
+        //System.out.println(balePointsSorted);
+
     }
 
     Map<Integer,Integer> dropPlaceNum = new HashMap<Integer,Integer>();
@@ -107,7 +140,7 @@ public class Player implements sunshine.sim.Player {
         System.out.println("how many close tractors: " + close_tractor.size());
 
         int id = tractor.getId();
-        List<Point> drop = dropTrailers();
+        drop = dropTrailers();
 
         // System.out.println("all points:");
         // for (Point p : bales) {
