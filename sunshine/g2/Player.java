@@ -79,23 +79,23 @@ public class Player implements sunshine.sim.Player {
             }
         }
 
-        int numFarPoints = farPoints.size();
-        if (numFarPoints < numTractors) {
-            for (int i = numFarPoints; i < numTractors; i++) {
-                List<Command> commands = new ArrayList<Command>();
-                commands.add(new Command(CommandType.DETATCH));
-                commandCenter.put(i, commands);
-            }
-        }
+        // int numFarPoints = farPoints.size();
+        // if (numFarPoints < numTractors) {
+        //     for (int i = numFarPoints; i < numTractors; i++) {
+        //         List<Command> commands = new ArrayList<Command>();
+        //         commands.add(new Command(CommandType.DETATCH));
+        //         commandCenter.put(i, commands);
+        //     }
+        // }
 
         // System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&map size: " + farPoints.size());
-        while (this.bales.size() != 0 || farPoints.size() != 0) {
-            for (int i = 0; i < numTractors; i++) {
-                if (this.bales.size() != 0 || farPoints.size() != 0) {
-                    oneTrip(i);
-                }
-            }
-        }
+        // while (this.bales.size() != 0 || farPoints.size() != 0) {
+        //     for (int i = 0; i < numTractors; i++) {
+        //         if (this.bales.size() != 0 || farPoints.size() != 0) {
+        //             oneTrip(i);
+        //         }
+        //     }
+        // }
 
      //    balesList = new ArrayList<Point>();
      //    counter = 0;
@@ -104,7 +104,7 @@ public class Player implements sunshine.sim.Player {
     }
 
     // when the tractor is back to the original
-    private void oneTrip(int tractorID) {
+    private void oneTrip(Tractor tractor) {
         if (farPoints.size() != 0) {
             Map.Entry<Point, List<Point>> entry = farPoints.entrySet().iterator().next();
 
@@ -119,29 +119,36 @@ public class Player implements sunshine.sim.Player {
             cluster.remove(minIndex);
 
             farPoints.remove(entry.getKey());
-            collectWithTrailer(tractorID, nearest, cluster);
+            collectWithTrailer(tractor, nearest, cluster);
         }
         else {
             Point p = bales.remove(0);
-            collectWithoutTrailer(tractorID, p);
+            collectWithoutTrailer(tractor, p);
         }
 
         // System.out.println("***************************************tractor ID is: " + tractorID + "**********************************************");
     }
 
-    private void collectWithoutTrailer(int tractorID, Point p) {
+    private void collectWithoutTrailer(Tractor tractor, Point p) {
+        int tractorID = tractor.getId();
         List<Command> commands = commandCenter.get(tractorID);
+        if (tractor.getAttachedTrailer() != null) {
+            commands.add(new Command(CommandType.DETATCH));
+        }
         commands.add(Command.createMoveCommand(p));
         commands.add(new Command(CommandType.LOAD));
         commands.add(Command.createMoveCommand(new Point(0.0, 0.0)));
         commands.add(new Command(CommandType.UNLOAD));
     }
 
-    private void collectWithTrailer(int tractorID, Point p, List<Point> ten) {
+    private void collectWithTrailer(Tractor tractor, Point p, List<Point> ten) {
+        int tractorID = tractor.getId();
         List<Command> commands = commandCenter.get(tractorID);
 
         // forward trip
-        commands.add(new Command(CommandType.ATTACH));
+        if (tractor.getAttachedTrailer() == null) {
+            commands.add(new Command(CommandType.ATTACH));
+        }
         commands.add(Command.createMoveCommand(p));
         commands.add(new Command(CommandType.DETATCH));
         for (Point bale : ten) {
@@ -272,11 +279,16 @@ public class Player implements sunshine.sim.Player {
         int tractorID = tractor.getId();
         List<Command> commands = commandCenter.get(tractorID);
 
+        if (commands.size() == 0 && bales.size() != 0) {
+            oneTrip(tractor);
+        }
+
         if (commands.size() == 0) {
             return new Command(CommandType.UNLOAD);
         }
-
-        return commands.remove(0);
+        else {
+            return commands.remove(0);
+        }
   //       if(tractor.getLocation().equals(new Point(0.0,0.0)) && tractor.getAttachedTrailer()!=null && balesList.size()!=0){
 		// 	return Command.createMoveCommand(balesListCenter);
   //       }
