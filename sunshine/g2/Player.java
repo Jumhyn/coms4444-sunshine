@@ -27,17 +27,21 @@ public class Player implements sunshine.sim.Player {
 
     private Map<Integer, List<Command>> commandCenter;
     private Map<Point, List<Point>> farPoints;
+    private List<Cluster> sortedClusters;
     private int numTractors;
     private double edgeLength;
     private double time;
+    private int numBins;
 
     public Player() {
         rand = new Random(seed);
         commandCenter = new HashMap<Integer, List<Command>>();
         farPoints = new HashMap<Point, List<Point>>();
+        sortedClusters = new ArrayList<Cluster>();
         numTractors = 0;
         edgeLength = 0.0;
         time = 0.0;
+        numBins = 0;
     }
     
     public void init(List<Point> bales, int n, double m, double t)
@@ -57,6 +61,7 @@ public class Player implements sunshine.sim.Player {
         numTractors = n;
         edgeLength = m;
         time = t;
+        numBins = numTractors / 2;
         for (int i = 0; i < numTractors; i++) {
             List<Command> commands = new ArrayList<Command>();
             commandCenter.put(i, commands);
@@ -71,13 +76,22 @@ public class Player implements sunshine.sim.Player {
             double disToOrigin = calcEucDistance(new Point(0.0, 0.0), p);
             if (disToOrigin > 175) {
                 List<Point> ten = getNearestTenBales(p);
-                farPoints.put(p, ten);
+                // farPoints.put(p, ten);
+                List<Point> c = new ArrayList<Point>(ten);
+                c.add(p);
+                int index = getNearestToOrigin(c);
+                Point anchor = c.remove(index);
+                Cluster cluster = new Cluster(anchor, c);
+                sortedClusters.add(cluster);
+                ////////////////////////////////////////to do!!!!!!!!!!!!!!!! fill the queue
             }
             else {
                 this.bales.add(0, p);
                 break;
             }
         }
+
+        Collections.sort(sortedClusters);
 
         // int numFarPoints = farPoints.size();
         // if (numFarPoints < numTractors) {
@@ -103,23 +117,56 @@ public class Player implements sunshine.sim.Player {
     	// buildList();
     }
 
+    /* Chinmay's function to divide the sortedClusters into numBins, and record the anchor
+       of each cluster for each bin so that Frank can remove the whole cluster when the 
+       helper tractor moved all the Points in one cluster to the anchor.
+
+       Two member variables will be filled: sortedBinClusters, sortedBinAnchors
+    */ 
+    // Chinmay's function here
+
+
+    /* Frank's function to dispatch a tractor to move the clusters to their anchor or tractor
+       with trailer to collect all the bales at the anchor position and ship them back. Frank
+       can assume that tractors with odd IDs are with trailers, and those with even IDs are 
+       helper tractors. And 0, 1 tractors are assigned to the first bin, 2, 3 tractors are 
+       assgined to the second bin, and so on. There's no extra data structure needed for this.
+
+       Frank's function will remove collectWithTrailer in the oneTrip function
+    */ 
+    // Frank's function here
+
+    // // when the tractor is back to the original
+    // private void oneTrip(Tractor tractor) {
+    //     if (farPoints.size() != 0) {
+    //         Map.Entry<Point, List<Point>> entry = farPoints.entrySet().iterator().next();
+
+    //         List<Point> cluster = new ArrayList<Point>();
+    //         cluster.add(entry.getKey());
+    //         List<Point> nearBales = entry.getValue();
+    //         for(int i=0; i < nearBales.size();i++){
+    //           cluster.add(nearBales.get(i));
+    //         }
+    //         int minIndex = getNearestToOrigin(cluster);
+    //         Point nearest = cluster.get(minIndex);
+    //         cluster.remove(minIndex);
+
+    //         farPoints.remove(entry.getKey());
+    //         collectWithTrailer(tractor, nearest, cluster);
+    //     }
+    //     else {
+    //         Point p = bales.remove(0);
+    //         collectWithoutTrailer(tractor, p);
+    //     }
+
+    //     // System.out.println("***************************************tractor ID is: " + tractorID + "**********************************************");
+    // }
+
     // when the tractor is back to the original
     private void oneTrip(Tractor tractor) {
-        if (farPoints.size() != 0) {
-            Map.Entry<Point, List<Point>> entry = farPoints.entrySet().iterator().next();
-
-            List<Point> cluster = new ArrayList<Point>();
-            cluster.add(entry.getKey());
-            List<Point> nearBales = entry.getValue();
-            for(int i=0; i < nearBales.size();i++){
-              cluster.add(nearBales.get(i));
-            }
-            int minIndex = getNearestToOrigin(cluster);
-            Point nearest = cluster.get(minIndex);
-            cluster.remove(minIndex);
-
-            farPoints.remove(entry.getKey());
-            collectWithTrailer(tractor, nearest, cluster);
+        if (sortedClusters.size() != 0) {
+            Cluster cluster = sortedClusters.remove(sortedClusters.size() - 1);
+            collectWithTrailer(tractor, cluster.getAnchor(), cluster.getOthers());
         }
         else {
             Point p = bales.remove(0);
@@ -346,7 +393,34 @@ public class Player implements sunshine.sim.Player {
     	}
     }
 
+    /* A new data structure to represent each cluster in the field. A cluster is 
+    consisted of one anchor, which is the closest Point to the origin among the 11
+    Points, and other 10 Points.
+    */
 
+    private class Cluster implements Comparable<Cluster>{
+        Point anchor;
+        List<Point> others;
+
+        public Cluster (Point a, List<Point> o) {
+            anchor = new Point(a.x, a.y);
+            others = new ArrayList<Point>(o);
+        }
+
+        public Point getAnchor() {
+            return new Point(anchor.x, anchor.y);
+        }
+
+        public List<Point> getOthers() {
+            return new ArrayList<Point>(others);
+        }
+
+        @Override
+        public int compareTo(Cluster cluster) {
+            return (int) Math.signum(anchor.x * anchor.x + anchor.y * anchor.y - cluster.anchor.x * cluster.anchor.x - cluster.anchor.y * cluster.anchor.y);
+        }
+
+    }
 
     
 }
