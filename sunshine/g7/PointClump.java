@@ -18,8 +18,8 @@ class PointClump extends ArrayList<Point> {
 
     public Point dropPoint;
     public boolean barnClump;
-    public Tractor tractor;
-    public Trailer trailer;
+    // public Tractor tractor;
+    // public Trailer trailer;
 
     private double accuracy = 1;
     
