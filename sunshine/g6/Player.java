@@ -1,14 +1,16 @@
 package sunshine.g6;
 
 import java.util.List;
-import java.util.Map;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.HashMap;
-import java.util.PriorityQueue;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Comparator;
+import static java.util.stream.Collectors.*;
+import static java.util.Map.Entry.*;
 
 import sunshine.sim.Command;
 import sunshine.sim.Tractor;
