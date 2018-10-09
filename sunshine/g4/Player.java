@@ -247,10 +247,6 @@ public class Player implements sunshine.sim.Player {
         }
     }
 
-    private double Euclidean(Point p1, Point p2) {
-        return (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y);
-    }
-
     //return the next cluster list and center
     private Cluster getClusters(List<Point> inputBales, int k) {  // k bales per cluster
         List<Point> result = new ArrayList<>();
