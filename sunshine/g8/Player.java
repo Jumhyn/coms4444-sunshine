@@ -22,6 +22,7 @@ public class Player implements sunshine.sim.Player
 	// Random seed of 42.
 	private int seed = 42;
 	private Random rand;
+        private final static Point ORIGIN = new Point(0.0, 0.0);
 
 	// List of Bales, one batch for trailers and the other for tractor ONLY
 	private List<Point> tractor_bales;
@@ -30,6 +31,8 @@ public class Player implements sunshine.sim.Player
 	// Make list of centroids, Deposit points for the trailer
 	private List<Point> centroids = new ArrayList<Point>();
 	
+        // Map the TractorID (matched with trailer it is matched to...to Location of Trailer
+        private HashMap<Integer, Point> trailer_map = new HashMap<Integer, Point>();
 	private boolean is_not_removed = true;
 
 	// Get number of tractors, change stategy as needed
@@ -47,6 +50,7 @@ public class Player implements sunshine.sim.Player
 		return Math.sqrt(Math.pow(p1.x-p2.x,2)+Math.pow(p1.y-p2.y,2));
 	}
 
+        // Purpose: Sort location of bales. Closest to furthest bale
 	public Comparator<Point> pointComparator = new Comparator<Point>() 
 	{
 		public int compare(Point p1, Point p2) 
@@ -69,6 +73,33 @@ public class Player implements sunshine.sim.Player
 		}
 	};
 
+        // Will break a list into a list<list>, maxmimize all lists up to n.
+        // The last list may be size n or less
+        public List<List<Point>> split_list_n(List<Point> full, int n)
+        {
+            List<List<Point>> split = new List<List<Point>>();
+            for (int i = 0; i < full.size();i+=n)
+            {
+                List<Point> chunk = new List<Point>();
+                for (int j = i; j < n; j++)
+                {
+                    // Edge case: last batch has less than 11 bales
+                    if(j >= n)
+                    {
+                        break;
+                    }
+                    chunk.add(full.get(j));
+                }
+                split.add(chunk);
+            }
+        }
+
+        // Split the Tractor and Trailer bale depending on the index.
+        public void split_trailer_tractor_batch(List<Point> bales)
+        {
+
+        }
+
 	public void init(List<Point> bales, int n, double m, double t)
 	{
 		// Organize how bales will be selected by tractors
@@ -87,18 +118,14 @@ public class Player implements sunshine.sim.Player
 		//System.out.println(t); //10000 - time
 	}
 
-	public Command getCommand(Tractor tractor)
-	{
-		// Andrew will be testing some stuff with just 1 tractor
-		if(n_tractors == 1)
+        public Command one_trailer_greedy(Tractor tractor)
+        {
+            // OPTON 1: USE NO TRAILER			
+	        if(is_not_removed)
 		{
-			// OPTON 1: USE NO TRAILER
-			
-			if(is_not_removed)
-			{
-				is_not_removed = false;
-				return new Command(CommandType.DETATCH);
-			}
+			is_not_removed = false;
+			return new Command(CommandType.DETATCH);
+		}
 
 			// Option 1: Abandon Trailer, grab everything!
 			if (tractor.getHasBale()) 
@@ -127,7 +154,17 @@ public class Player implements sunshine.sim.Player
 					return new Command(CommandType.LOAD);
 				}
 			}
+        }
 
+
+	public Command getCommand(Tractor tractor)
+	{
+		// Andrew will be testing some stuff with just 1 tractor
+		if(n_tractors == 1)
+		{
+                    return one_trailer_greedy(tractor);
+                     
+			
 			// Option 2: Use Trailer for everything
 			// If at origin
 			/*
@@ -275,6 +312,7 @@ public class Player implements sunshine.sim.Player
 		}
 		else
 		{
+                        // INVALID, Just random code...
 			if (tractor.getHasBale()) 
 			{
 				// Unload the bale at the barn
