@@ -18,8 +18,8 @@ class PointClump extends ArrayList<Point> {
 
     public Point dropPoint;
     public boolean barnClump;
-    public Tractor tractor;
-    public Trailer trailer;
+    // public Tractor tractor;
+    // public Trailer trailer;
 
     private double accuracy = 1;
     
@@ -31,11 +31,11 @@ class PointClump extends ArrayList<Point> {
 	
 	setDropPoint();
 
-	double trailerCost = 0;
-	double tractorCost = 0;
+	double trailerCost = trailerTime();
+	double tractorCost = tractorTime();
 	barnClump = ( trailerCost > tractorCost );
 
-	//	System.out.println("tractor cost: " + tractorCost + "\t trailer cost: " + trailerCost + "\t barnClump: " + barnClump);
+	System.out.println("tractor cost: " + tractorCost + "\t trailer cost: " + trailerCost + "\t barnClump: " + barnClump);
 
 	    
     }
@@ -46,6 +46,21 @@ class PointClump extends ArrayList<Point> {
 	
     }
 
+    public double tractorTime() {
+	double total = 0;
+	for ( Point bale : this ) {
+	    total += Math.sqrt( bale.x*bale.x + bale.y*bale.y );
+	}
+	return total * 2; //all distances must be traveled twice
+    }
+
+    public double trailerTime() {
+	double total = distanceSum(dropPoint) * 2; //all distaces must be traveled twice
+	total += 10*4*60; //unhitching/hitching that is added as opportunity cost in meters
+	total += 10*20*10; //stacking/unstacking added as opportunity cost
+	return total;
+    }
+    
     public Point centroid() {
 	double x = 0;
 	double y = 0;
