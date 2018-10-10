@@ -197,6 +197,8 @@ public class Player implements sunshine.sim.Player {
                 }
 
 
+                Collections.reverse(equizones);
+
                 int count =0;
                 for(int i=0;i<equizones.size();i++)
                 {
@@ -300,6 +302,12 @@ public class Player implements sunshine.sim.Player {
             efficiency -= 0.5D * distance(center, origin) // Carrying trailer from and back to the origin
             		+ (cluster.size() - 1) * 20.0D // Stacking & unstacking cost
             		+ 240.0D; // attaching & detatching cost
+            
+
+            /// hack to not leave behind any bale
+            center.x += 0.001;
+            center.y += 0.001;
+
             
             if (efficiency > 0.0D)
             	return center;
