@@ -24,6 +24,7 @@ public class Player implements sunshine.sim.Player {
     private int counter;
     List<Point> balesList;
     Point balesListCenter;
+    List<List<Point>> bucketAnchors;
     List<List<Cluster>> buckets;
     private List<Point> clusterAnchors;
     private Map<Integer, List<Command>> commandCenter;
@@ -49,6 +50,7 @@ public class Player implements sunshine.sim.Player {
     {
         this.bales = new ArrayList<Point>(bales);
         clusterAnchors = new ArrayList<Point>();
+        bucketAnchors = new ArrayList<>();
         buckets = new ArrayList<>();
         Collections.sort(this.bales, 
             new Comparator(){
@@ -95,30 +97,132 @@ public class Player implements sunshine.sim.Player {
             }
         }
         bucketClusters();
+        System.out.println(bucketAnchors.size());
+        System.out.println(buckets.size());
+        System.out.println(bucketAnchors.get(0).size());
+        System.out.println(buckets.get(0).size());
         Collections.sort(sortedClusters);
-        // int numFarPoints = farPoints.size();
-        // if (numFarPoints < numTractors) {
-        //     for (int i = numFarPoints; i < numTractors; i++) {
-        //         List<Command> commands = new ArrayList<Command>();
-        //         commands.add(new Command(CommandType.DETATCH));
-        //         commandCenter.put(i, commands);
-        //     }
-        // }
-
-        // System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&map size: " + farPoints.size());
-        // while (this.bales.size() != 0 || farPoints.size() != 0) {
-        //     for (int i = 0; i < numTractors; i++) {
-        //         if (this.bales.size() != 0 || farPoints.size() != 0) {
-        //             oneTrip(i);
-        //         }
-        //     }
-        // }
-
-     //    balesList = new ArrayList<Point>();
-     //    counter = 0;
-    	// balesListCenter = this.bales.get(getFurthestBale());
-    	// buildList();
     }
+
+
+
+
+
+
+// private void handleClusters(Tractor tractor) {
+
+//         if (tractor.getId() % 2 == 0) {
+//             // Iterate through bin of clusters for this tractor
+//             Cluster cluster = sortedClusters.remove(sortedClusters.size() - 1);
+//             collectWithTrailer(tractor, cluster.getAnchor(), cluster.getOthers());
+//         } else {
+//             // populate list with clusters this tractor is responsible for condensing
+//             // Chinmay returns list of clusters which are near each other
+//             //  Cluster cluster = sortedClusters.remove(sortedClusters.size() - 1);
+            
+//             Cluster cluster = sortedClusters.remove(sortedClusters.size() - 1);
+//             condenseCluster(tractor, cluster.getAnchor(), cluster.getOthers());
+
+//             // After all dedicated clusters have been condensed, run the greedy collection
+//             // Algorithm on the remaining bales
+//             Point p = bales.remove(0);
+//             collectGreedy(tractor, p);
+
+//             // Alternatively go help unload the trailers at home
+//             commands.add(Command.createMoveCommand(new Point(0.0, 0.0)));
+//             // cycle through unloading trailers
+//             // KEEP global variable of trailers that are currently being unloaded to query their current capacity
+//             // if trailer capacity > 3
+//             commands.add(new Command(CommandType.UNSTACK));
+//             commands.add(new Command(CommandType.UNLOAD));
+
+//         }
+//         // if (sortedClusters.size() != 0) {
+//         //     Cluster cluster = sortedClusters.remove(sortedClusters.size() - 1);
+//         //     collectWithTrailer(tractor, cluster.getAnchor(), cluster.getOthers());
+//         // }
+
+//         // else {
+//         //     Cluster cluster = sortedClusters.remove(sortedClusters.size() - 1);
+//         //     collectWithoutTrailer(tractor, cluster.getAnchor(), cluster.getOthers());
+//         // }
+
+//         // System.out.println("**************************************tractor ID is: " + tractorID + "*********************************************");
+//     }
+
+    private void condenseCluster(Tractor tractor, Point p, List<Point> ten) {
+        int tractorID = tractor.getId();
+        List<Command> commands = commandCenter.get(tractorID);
+        if (tractor.getAttachedTrailer() != null) {
+            commands.add(new Command(CommandType.DETATCH));
+        }
+
+        for (Point bale: ten) {
+            commands.add(Command.createMoveCommand(bale));
+            commands.add(new Command(CommandType.LOAD));
+            commands.add(Command.createMoveCommand(p));
+            commands.add(new Command(CommandType.UNLOAD));
+        }
+    }
+
+    private void collectGreedy(Tractor tractor, Point p) {
+        int tractorID = tractor.getId();
+        List<Command> commands = commandCenter.get(tractorID);
+        if (tractor.getAttachedTrailer() != null) {
+            commands.add(new Command(CommandType.DETATCH));
+        }
+        commands.add(Command.createMoveCommand(p));
+        commands.add(new Command(CommandType.LOAD));
+        commands.add(Command.createMoveCommand(new Point(0.0, 0.0)));
+        commands.add(new Command(CommandType.UNLOAD));
+    }
+
+    // private void collectWithTrailer(Tractor tractor, Point p, List<Point> ten) {
+    //     int tractorID = tractor.getId();
+    //     List<Command> commands = commandCenter.get(tractorID);
+
+    //     // forward trip
+    //     if (tractor.getAttachedTrailer() == null) {
+    //         commands.add(new Command(CommandType.ATTACH));
+    //     }
+    //     commands.add(Command.createMoveCommand(p));
+    //     commands.add(new Command(CommandType.DETATCH));
+    //     for (Point bale : ten) {
+    //         commands.add(Command.createMoveCommand(bale));
+    //         commands.add(new Command(CommandType.LOAD));
+    //         commands.add(Command.createMoveCommand(p));
+    //         commands.add(new Command(CommandType.STACK));
+    //     }
+    //     commands.add(new Command(CommandType.LOAD));
+    //     commands.add(new Command(CommandType.ATTACH));
+
+    //     //backward trip
+    //     commands.add(Command.createMoveCommand(new Point(0.0, 0.0)));
+    //     commands.add(new Command(CommandType.DETATCH));
+    //     commands.add(new Command(CommandType.UNLOAD));
+    //     for (int i = 0; i < ten.size(); i++) {
+    //         commands.add(new Command(CommandType.UNSTACK));
+    //         commands.add(new Command(CommandType.UNLOAD));
+    //     }
+
+    //     // possible callback function
+    // }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     public List<Point> closestAnchors(List<Point> anchorsCopy,int bucketSize){
         List<Point> anchors = new ArrayList<Point>(anchorsCopy);
         Point p = anchors.get(0);
@@ -156,9 +260,11 @@ public class Player implements sunshine.sim.Player {
                 bucketSize-=1;
             }
             List<Cluster> temp = new ArrayList<Cluster>();
+            List<Point> temp2 = new ArrayList<Point>();
             List<Point> closestPoints = new ArrayList<Point>();
             closestPoints = closestAnchors(anchors,bucketSize-1);
             Point p = anchors.get(0);
+            temp2.add(p);
             for(int j=0;j<sortedClusters.size();j++){
                 if ((sortedClusters.get(j).getAnchor().x==p.x)&&(sortedClusters.get(j).getAnchor().y==p.y)){
                     temp.add(sortedClusters.get(j));
@@ -168,6 +274,7 @@ public class Player implements sunshine.sim.Player {
             anchors.remove(p);
             for(int i=0;i<closestPoints.size();i++){
                 p = closestPoints.get(i);
+                temp2.add(p);
                 for(int j=0;j<sortedClusters.size();j++){
                     if ((sortedClusters.get(j).getAnchor().x==p.x)&&(sortedClusters.get(j).getAnchor().y==p.y)){
                         temp.add(sortedClusters.get(j));
@@ -177,29 +284,50 @@ public class Player implements sunshine.sim.Player {
                 anchors.remove(p);
             }
             buckets.add(temp);
+            bucketAnchors.add(temp2);
             times-=1;
         }
     }
-    /* Chinmay's function to divide the sortedClusters into numBins, and record the anchor
-       of each cluster for each bin so that Frank can remove the whole cluster when the 
-       helper tractor moved all the Points in one cluster to the anchor.
 
-       Two member variables will be filled: sortedBinClusters, sortedBinAnchors
-    */ 
-    // Chinmay's function here
+    private void oneTrip(Tractor tractor) {
 
+        int index = getBin(tractor);
+        if (isHelper(tractor) && buckets.get(index).size() != 0) {
+        	List<Cluster> clusters = buckets.get(index);
+        	Cluster c = clusters.remove(clusters.size() - 1);
+        	System.out.println(clusters.size());
+            condenseCluster(tractor, c.getAnchor(), c.getOthers());
+        }
+        else if (bucketAnchors.get(index).size() != 0) {
+            // haul clusters back with trailer
+            List<Point> anchors = bucketAnchors.get(index);
+            Point p = anchors.remove(anchors.size() - 1);
+            collectWithTrailer(tractor, p);
+        }
+        else {
+            Point p = bales.remove(0);
+            collectWithoutTrailer(tractor, p);
+        }
+        // if (sortedClusters.size() != 0) {
+        //     Cluster cluster = sortedClusters.remove(sortedClusters.size() - 1);
+        //     collectWithTrailer(tractor, cluster.getAnchor(), cluster.getOthers());
+        // }
+        // else {
+        //     Point p = bales.remove(0);
+        //     collectWithoutTrailer(tractor, p);
+        // }
+        // System.out.println("***************************************tractor ID is: " + tractorID + "**********************************************");
+    }
 
-    /* Frank's function to dispatch a tractor to move the clusters to their anchor or tractor
-       with trailer to collect all the bales at the anchor position and ship them back. Frank
-       can assume that tractors with odd IDs are with trailers, and those with even IDs are 
-       helper tractors. And 0, 1 tractors are assigned to the first bin, 2, 3 tractors are 
-       assgined to the second bin, and so on. There's no extra data structure needed for this.
+    private int getBin(Tractor tractor) {
+        int tractorID = tractor.getId();
+        return tractorID / 2;
+    }
 
-       Frank's function will remove collectWithTrailer in the oneTrip function
-    */ 
-    // Frank's function here
-
-    // // when the tractor is back to the original
+    private boolean isHelper(Tractor tractor) {
+        int tractorID = tractor.getId();
+        return (tractorID % 2 == 0) ?true: false;
+    }
     // private void oneTrip(Tractor tractor) {
     //     if (farPoints.size() != 0) {
     //         Map.Entry<Point, List<Point>> entry = farPoints.entrySet().iterator().next();
@@ -226,18 +354,16 @@ public class Player implements sunshine.sim.Player {
     // }
 
     // when the tractor is back to the original
-    private void oneTrip(Tractor tractor) {
-        if (sortedClusters.size() != 0) {
-            Cluster cluster = sortedClusters.remove(sortedClusters.size() - 1);
-            collectWithTrailer(tractor, cluster.getAnchor(), cluster.getOthers());
-        }
-        else {
-            Point p = bales.remove(0);
-            collectWithoutTrailer(tractor, p);
-        }
-
-        // System.out.println("***************************************tractor ID is: " + tractorID + "**********************************************");
-    }
+    // private void oneTrip(Tractor tractor) {
+    //     if (sortedClusters.size() != 0) {
+    //         Cluster cluster = sortedClusters.remove(sortedClusters.size() - 1);
+    //         collectWithTrailer(tractor, cluster.getAnchor(), cluster.getOthers());
+    //     }
+    //     else {
+    //         Point p = bales.remove(0);
+    //         collectWithoutTrailer(tractor, p);
+    //     }
+    // }
 
     private void collectWithoutTrailer(Tractor tractor, Point p) {
         int tractorID = tractor.getId();
@@ -251,7 +377,38 @@ public class Player implements sunshine.sim.Player {
         commands.add(new Command(CommandType.UNLOAD));
     }
 
-    private void collectWithTrailer(Tractor tractor, Point p, List<Point> ten) {
+    // private void collectWithTrailer(Tractor tractor, Point p, List<Point> ten) {
+    //     int tractorID = tractor.getId();
+    //     List<Command> commands = commandCenter.get(tractorID);
+
+    //     // forward trip
+    //     if (tractor.getAttachedTrailer() == null) {
+    //         commands.add(new Command(CommandType.ATTACH));
+    //     }
+    //     commands.add(Command.createMoveCommand(p));
+    //     commands.add(new Command(CommandType.DETATCH));
+    //     for (Point bale : ten) {
+    //         commands.add(Command.createMoveCommand(bale));
+    //         commands.add(new Command(CommandType.LOAD));
+    //         commands.add(Command.createMoveCommand(p));
+    //         commands.add(new Command(CommandType.STACK));
+    //     }
+    //     commands.add(new Command(CommandType.LOAD));
+    //     commands.add(new Command(CommandType.ATTACH));
+
+    //     //backward trip
+    //     commands.add(Command.createMoveCommand(new Point(0.0, 0.0)));
+    //     commands.add(new Command(CommandType.DETATCH));
+    //     commands.add(new Command(CommandType.UNLOAD));
+    //     for (int i = 0; i < ten.size(); i++) {
+    //         commands.add(new Command(CommandType.UNSTACK));
+    //         commands.add(new Command(CommandType.UNLOAD));
+    //     }
+
+    //     // possible callback function
+    // }
+
+    private void collectWithTrailer(Tractor tractor, Point p) {
         int tractorID = tractor.getId();
         List<Command> commands = commandCenter.get(tractorID);
 
@@ -261,8 +418,8 @@ public class Player implements sunshine.sim.Player {
         }
         commands.add(Command.createMoveCommand(p));
         commands.add(new Command(CommandType.DETATCH));
-        for (Point bale : ten) {
-            commands.add(Command.createMoveCommand(bale));
+        for (int i =0; i < 10; i++) {
+            commands.add(Command.createMoveCommand(p));
             commands.add(new Command(CommandType.LOAD));
             commands.add(Command.createMoveCommand(p));
             commands.add(new Command(CommandType.STACK));
@@ -274,7 +431,7 @@ public class Player implements sunshine.sim.Player {
         commands.add(Command.createMoveCommand(new Point(0.0, 0.0)));
         commands.add(new Command(CommandType.DETATCH));
         commands.add(new Command(CommandType.UNLOAD));
-        for (int i = 0; i < ten.size(); i++) {
+        for (int i = 0; i < 10; i++) {
             commands.add(new Command(CommandType.UNSTACK));
             commands.add(new Command(CommandType.UNLOAD));
         }
