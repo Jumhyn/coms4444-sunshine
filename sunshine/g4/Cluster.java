@@ -6,6 +6,8 @@ import java.io.*;
 import java.util.List;
 
 public class Cluster {
+    /*******  DEBUG MODE******/
+    private final boolean DEBUG_MODE = false;
 
     public List<Point> nodes;
     public Point center;
@@ -94,8 +96,10 @@ public class Cluster {
         double obj = Double.MAX_VALUE;
         while (isIn(p, firstP, maxRadius) && currentStep < iters) {
             currentStep++;
-            if (currentStep % 100 == 0) {
-                writer.println(obj);
+            if(DEBUG_MODE) {
+                if (currentStep % 100 == 0) {
+                    writer.println(obj);
+                }
             }
             lastP = p;
             p = updateCenter(dPx(p), dPy(p), p);
@@ -106,12 +110,16 @@ public class Cluster {
             obj = newObj;
         }
         if (originObj > obj) {
-            writer.print("SGD is better:");
-            writer.println(obj + "  " + originObj);
+            if(DEBUG_MODE) {
+                writer.print("SGD is better:");
+                writer.println(obj + "  " + originObj);
+            }
             return p;
         } else {
-            writer.print("Naive is better:");
-            writer.println(obj + "  " + originObj);
+            if(DEBUG_MODE) {
+                writer.print("Naive is better:");
+                writer.println(obj + "  " + originObj);
+            }
             return firstP;
         }
     }
