@@ -45,6 +45,7 @@ public class Player implements sunshine.sim.Player {
     }
 
     ArrayList<trailer> availableTrailers;
+    ArrayList<Point> centers;
 
 
     public Player() {
@@ -75,7 +76,11 @@ public class Player implements sunshine.sim.Player {
             trailer tmp =new trailer();
             availableTrailers.add(tmp);
         }
-
+        
+        centers = new ArrayList<Point>(n);
+        for (int i = 0; i < n; i++) {
+        	centers.add(null);
+        }
         // partition_uniform();
         partition();
         System.out.println("partition completed");
@@ -391,7 +396,10 @@ public class Player implements sunshine.sim.Player {
             List<Point> cluster = equizones.get(curr_idx);
             Point center = getClusterCenter(cluster);
             curr_idx++;
-            return Command.createMoveCommand(center);
+            if (center != null)
+            	return Command.createMoveCommand(center);
+            else
+            	return new Command(CommandType.DETATCH);
         }
 
         else if (tractor.getLocation().equals(new Point(0.0,0.0)))
@@ -410,17 +418,23 @@ public class Player implements sunshine.sim.Player {
                 trailer curr_trailer = new trailer();
                 curr_trailer.numBales = 0 ;
                 curr_trailer.location = tractor.getLocation();
-                availableTrailers.set(idx,curr_trailer);
-                return new Command(CommandType.ATTACH);
+                Tasks.set(idx,curr_idx);
+                List<Point> cluster = equizones.get(curr_idx);
+                curr_idx++;
+                centers.set(idx, getClusterCenter(cluster));
+                availableTrailers.set(idx, curr_trailer);
+                if (centers.get(idx) != null)
+                	return new Command(CommandType.ATTACH);
+                else {
+                    curr_trailer.location = new Point(0.001D, 0.001D);
+                	return Command.createMoveCommand(curr_trailer.location);
+                }
             }
             
             else if(tractor.getAttachedTrailer()!=null && !tractor.getHasBale() && availableTrailers.get(idx).numBales==0 && curr_idx<equizones.size())
             {
-                Tasks.set(idx,curr_idx);
-                List<Point> cluster = equizones.get(curr_idx);
-                Point center = getClusterCenter(cluster);
-                curr_idx++;
-                return Command.createMoveCommand(center);
+            	
+                return Command.createMoveCommand(centers.get(idx));
             }
 
             else if (tractor.getAttachedTrailer()==null && tractor.getHasBale())
@@ -447,10 +461,10 @@ public class Player implements sunshine.sim.Player {
 
         else if (tractor.getAttachedTrailer()!=null && availableTrailers.get(idx).numBales==0 && !tractor.getHasBale()) /// reached cluster center -> detach
         {
-                trailer curr_trailer = new trailer();
-                curr_trailer.numBales =0;
-                curr_trailer.location = tractor.getLocation();
-                availableTrailers.set(idx,curr_trailer);
+               trailer curr_trailer = new trailer();
+               curr_trailer.numBales =0;
+               curr_trailer.location = tractor.getLocation();
+               availableTrailers.set(idx,curr_trailer);
                return new Command(CommandType.DETATCH); 
         }
 
@@ -468,6 +482,8 @@ public class Player implements sunshine.sim.Player {
                 curr_trailer.numBales = availableTrailers.get(idx).numBales;
                 curr_trailer.location = tractor.getLocation();
                 availableTrailers.set(idx,curr_trailer);
+                if (availableTrailers.get(idx).location.equals(new Point(0.001D, 0.001D)))
+                	return Command.createMoveCommand(new Point(0.0,0.0));
                 return new Command(CommandType.ATTACH);
             }
         }
@@ -492,6 +508,8 @@ public class Player implements sunshine.sim.Player {
                 curr_trailer.numBales = availableTrailers.get(idx).numBales +1;
                 curr_trailer.location = availableTrailers.get(idx).location;
                 availableTrailers.set(idx,curr_trailer);
+                if (availableTrailers.get(idx).location.equals(new Point(0.001D, 0.001D)))
+                	return new Command(CommandType.UNLOAD);
                 return new Command(CommandType.STACK);
         }
 
