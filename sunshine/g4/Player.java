@@ -1,5 +1,7 @@
 package sunshine.g4;
 
+import java.io.FileNotFoundException;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.List;
 import java.lang.Math;
@@ -112,7 +114,14 @@ public class Player implements sunshine.sim.Player {
                 } else {
                     if (far_bales.size() > 0) {
                         tractor_mode.put(id, 3);
-                        Cluster myCluster = getClusters(far_bales, 10-tractor.getAttachedTrailer().getNumBales());
+                        Cluster myCluster = null;
+                        try {
+                            myCluster = getClusters(far_bales, 10-tractor.getAttachedTrailer().getNumBales());
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
+                        } catch (UnsupportedEncodingException e) {
+                            e.printStackTrace();
+                        }
                         if (tractor.getHasBale()){
                             System.out.println("error");
                             return new Command(CommandType.UNLOAD);
@@ -248,7 +257,7 @@ public class Player implements sunshine.sim.Player {
     }
 
     //return the next cluster list and center
-    private Cluster getClusters(List<Point> inputBales, int k) {  // k bales per cluster
+    private Cluster getClusters(List<Point> inputBales, int k) throws FileNotFoundException, UnsupportedEncodingException {  // k bales per cluster
         List<Point> result = new ArrayList<>();
         if (inputBales.isEmpty()) return null;
         Point pivot = inputBales.get(0);
