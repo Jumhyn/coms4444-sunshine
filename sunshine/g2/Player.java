@@ -1,6 +1,6 @@
 package sunshine.g2;
 import java.util.ArrayList;
-
+import java.lang.*;
 import java.util.List;
 import java.util.Collections;
 import java.util.List;
@@ -24,7 +24,8 @@ public class Player implements sunshine.sim.Player {
     private int counter;
     List<Point> balesList;
     Point balesListCenter;
-
+    List<List<Cluster>> buckets;
+    private List<Point> clusterAnchors;
     private Map<Integer, List<Command>> commandCenter;
     private Map<Point, List<Point>> farPoints;
     private List<Cluster> sortedClusters;
@@ -47,6 +48,8 @@ public class Player implements sunshine.sim.Player {
     public void init(List<Point> bales, int n, double m, double t)
     {
         this.bales = new ArrayList<Point>(bales);
+        clusterAnchors = new ArrayList<Point>();
+        buckets = new ArrayList<>();
         Collections.sort(this.bales, 
             new Comparator(){
                 @Override
@@ -81,6 +84,7 @@ public class Player implements sunshine.sim.Player {
                 c.add(p);
                 int index = getNearestToOrigin(c);
                 Point anchor = c.remove(index);
+                clusterAnchors.add(anchor);
                 Cluster cluster = new Cluster(anchor, c);
                 sortedClusters.add(cluster);
                 ////////////////////////////////////////to do!!!!!!!!!!!!!!!! fill the queue
@@ -90,9 +94,8 @@ public class Player implements sunshine.sim.Player {
                 break;
             }
         }
-
+        bucketClusters();
         Collections.sort(sortedClusters);
-
         // int numFarPoints = farPoints.size();
         // if (numFarPoints < numTractors) {
         //     for (int i = numFarPoints; i < numTractors; i++) {
@@ -116,7 +119,67 @@ public class Player implements sunshine.sim.Player {
     	// balesListCenter = this.bales.get(getFurthestBale());
     	// buildList();
     }
-
+    public List<Point> closestAnchors(List<Point> anchorsCopy,int bucketSize){
+        List<Point> anchors = new ArrayList<Point>(anchorsCopy);
+        Point p = anchors.get(0);
+        anchors.remove(p);
+        PriorityQueue<Point> sortedToPoint = new PriorityQueue<Point>(anchors.size(), 
+            new Comparator(){
+                public int compare(Object o1, Object o2) {
+                    Point p1 = (Point) o1;
+                    Point p2 = (Point) o2;
+                    return (int) Math.signum((p1.x - p.x) * (p1.x - p.x) + (p1.y - p.y) * (p1.y - p.y) - (p2.x - p.x) * (p2.x - p.x) - (p2.y - p.y) * (p2.y - p.y));
+               }
+            }
+        );
+        for (Point bale : anchors) {
+            sortedToPoint.add(bale);
+        }
+        List<Point> result = new ArrayList<Point>();
+        int numBales = bucketSize;
+        if (sortedToPoint.size() < numBales) {
+            numBales = sortedToPoint.size();
+        }
+        for (int i = 0; i < numBales; i++) {
+            Point point = sortedToPoint.poll();
+            result.add(point);
+        }
+        return result;
+    }
+    public void bucketClusters(){
+        int bucketSize = (int) Math.floor(2.0*sortedClusters.size()/numTractors);
+        int times = sortedClusters.size() - bucketSize*numTractors/2;
+        List<Point> anchors = new ArrayList<Point>(clusterAnchors);
+        bucketSize += 1;
+        while(anchors.size()!=0){
+            if(times==0){
+                bucketSize-=1;
+            }
+            List<Cluster> temp = new ArrayList<Cluster>();
+            List<Point> closestPoints = new ArrayList<Point>();
+            closestPoints = closestAnchors(anchors,bucketSize-1);
+            Point p = anchors.get(0);
+            for(int j=0;j<sortedClusters.size();j++){
+                if ((sortedClusters.get(j).getAnchor().x==p.x)&&(sortedClusters.get(j).getAnchor().y==p.y)){
+                    temp.add(sortedClusters.get(j));
+                    break;
+                }
+            }
+            anchors.remove(p);
+            for(int i=0;i<closestPoints.size();i++){
+                p = closestPoints.get(i);
+                for(int j=0;j<sortedClusters.size();j++){
+                    if ((sortedClusters.get(j).getAnchor().x==p.x)&&(sortedClusters.get(j).getAnchor().y==p.y)){
+                        temp.add(sortedClusters.get(j));
+                        break;
+                    }
+                }
+                anchors.remove(p);
+            }
+            buckets.add(temp);
+            times-=1;
+        }
+    }
     /* Chinmay's function to divide the sortedClusters into numBins, and record the anchor
        of each cluster for each bin so that Frank can remove the whole cluster when the 
        helper tractor moved all the Points in one cluster to the anchor.
