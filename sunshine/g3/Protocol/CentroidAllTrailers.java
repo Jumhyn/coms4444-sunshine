@@ -60,7 +60,7 @@ public class CentroidAllTrailers {
         if (!hb && atOrigin && attached && numBales == 0 && areBalesRem)
         {
             Point p = Util.centroidTrailer(assignedBales);
-            preemptive.put(Id, p);
+            //preemptive.put(Id, p);
             return Command.createMoveCommand(p);
         }
         else if (!hb && !atOrigin && attached && areBalesRem)
