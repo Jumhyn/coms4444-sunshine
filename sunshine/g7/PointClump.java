@@ -35,7 +35,7 @@ class PointClump extends ArrayList<Point> {
 	double tractorCost = tractorTime();
 	barnClump = ( trailerCost > tractorCost );
 
-	System.out.println("tractor cost: " + tractorCost + "\t trailer cost: " + trailerCost + "\t barnClump: " + barnClump);
+	//	System.out.println("tractor cost: " + tractorCost + "\t trailer cost: " + trailerCost + "\t barnClump: " + barnClump);
 
 	    
     }
@@ -155,7 +155,7 @@ class PointClump extends ArrayList<Point> {
 	//System.out.println("setting drop point");
 	dropPoint = geometricMean();
 	dropPoint=findCloset(dropPoint);
-	System.out.println("dropPoint is: " + dropPoint.x + ", " + dropPoint.y);
+	//System.out.println("dropPoint is: " + dropPoint.x + ", " + dropPoint.y);
     }
     
     
