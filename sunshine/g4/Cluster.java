@@ -96,7 +96,7 @@ public class Cluster {
         double obj = Double.MAX_VALUE;
         while (isIn(p, firstP, maxRadius) && currentStep < iters) {
             currentStep++;
-            if(DEBUG_MODE) {
+            if (DEBUG_MODE) {
                 if (currentStep % 100 == 0) {
                     writer.println(obj);
                 }
@@ -110,13 +110,13 @@ public class Cluster {
             obj = newObj;
         }
         if (originObj > obj) {
-            if(DEBUG_MODE) {
+            if (DEBUG_MODE) {
                 writer.print("SGD is better:");
                 writer.println(obj + "  " + originObj);
             }
             return p;
         } else {
-            if(DEBUG_MODE) {
+            if (DEBUG_MODE) {
                 writer.print("Naive is better:");
                 writer.println(obj + "  " + originObj);
             }

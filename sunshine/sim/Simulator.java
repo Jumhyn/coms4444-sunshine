@@ -262,8 +262,7 @@ public class Simulator {
     
     private static void handleCompletedCommand(CommandWrapper command, MutableTractor tractor)
     {
-        System.out.println("(COMPLETED) " + command.toString());        
-        System.out.println(numBales);
+        System.out.println("(COMPLETED) " + command.toString());
         switch (command.command.getType())
         {
             case MOVE_TO:
