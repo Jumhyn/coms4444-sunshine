@@ -394,12 +394,13 @@ public class Player implements sunshine.sim.Player {
         {
             Tasks.set(idx,curr_idx);
             List<Point> cluster = equizones.get(curr_idx);
-            Point center = getClusterCenter(cluster);
+            centers.set(idx, getClusterCenter(cluster));
             curr_idx++;
-            if (center != null)
-            	return Command.createMoveCommand(center);
+            if (centers.get(idx) != null) {
+            	return Command.createMoveCommand(centers.get(idx));
+            }
             else
-            	return new Command(CommandType.DETATCH);
+            	return getCommand(tractor);
         }
 
         else if (tractor.getLocation().equals(new Point(0.0,0.0)))
@@ -519,6 +520,8 @@ public class Player implements sunshine.sim.Player {
                 curr_trailer.numBales = availableTrailers.get(idx).numBales;
                 curr_trailer.location = tractor.getLocation();
                 availableTrailers.set(idx,curr_trailer);
+                if (availableTrailers.get(idx).location.equals(new Point(0.001D, 0.001D)))
+                	return Command.createMoveCommand(new Point(0.0,0.0));
                 return new Command(CommandType.ATTACH);
         }
 
