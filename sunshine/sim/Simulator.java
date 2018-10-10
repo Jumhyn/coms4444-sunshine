@@ -151,7 +151,7 @@ public class Simulator {
         
         baleLocations = Harvester.harvest(rand, m);
         numBales = baleLocations.size();
-
+        
         tractors = new ArrayList<MutableTractor>();
         trailers = new ArrayList<MutableTrailer>();
         pendingCommands = new PriorityQueue<CommandWrapper>();
