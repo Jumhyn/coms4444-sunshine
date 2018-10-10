@@ -32,6 +32,7 @@ public class Player implements sunshine.sim.Player {
     HashMap<Integer, Point> preemptive = new HashMap<Integer, Point>();
     HashMap<Integer, Util.BalesProtocol> balesAssignments= new HashMap<Integer, Util.BalesProtocol>();
 
+    Integer test = 0;
     ////////// End Custom Variables ////////// 
 
     public Player() {
@@ -61,6 +62,15 @@ public class Player implements sunshine.sim.Player {
         //return RandomNoTrailers.getCommand(rand, tractor, bales, pairs, preemptive, balesAssignments);
         //return RandomAllTrailers.getCommand(rand, tractor, bales, pairs, preemptive, balesAssignments);
         bales = FurthestPointCluster.updateBales(tractor, bales, balesAssignments);
-        return FurthestPointCluster.getCommand(rand, tractor, bales, pairs, preemptive, balesAssignments);
+        Command c = FurthestPointCluster.getCommand(rand, tractor, bales, pairs, preemptive, balesAssignments);
+        //return FurthestPointCluster.getCommand(rand, tractor, bales, pairs, preemptive, balesAssignments);
+        //if (c == new Command(CommandType.LOAD))
+        //{
+        //    if (!tractor.getHasBale())
+        //    {
+        //        System.out.println("COMMAND: TRACTOR " + Integer.toString(Id) + " ERROR");
+        //    }
+        //}
+        return c; 
     }
 }
