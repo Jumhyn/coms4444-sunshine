@@ -16,7 +16,7 @@ import sunshine.g3.Util.*;
 
 import sunshine.g3.Protocol.RandomNoTrailers;
 import sunshine.g3.Protocol.RandomAllTrailers;
-import sunshine.g3.Protocol.FurthestPointCluster;
+import sunshine.g3.Protocol.MasterProtocol;
 
 
 public class Player implements sunshine.sim.Player {
@@ -28,11 +28,12 @@ public class Player implements sunshine.sim.Player {
 
     ////////// Custom Variables //////////
 
+    Point origin = new Point(0.0, 0.0);
     HashMap<Integer, Trailer> pairs = new HashMap<Integer, Trailer>();
     HashMap<Integer, Point> preemptive = new HashMap<Integer, Point>();
     HashMap<Integer, Util.BalesProtocol> balesAssignments= new HashMap<Integer, Util.BalesProtocol>();
 
-    Integer test = 0;
+    Integer numTractors = 0;
     ////////// End Custom Variables ////////// 
 
     public Player() {
@@ -56,21 +57,17 @@ public class Player implements sunshine.sim.Player {
             BalesProtocol emptyBP = new BalesProtocol(emptyList, -1);
 
             balesAssignments.put(Id, emptyBP);
+
+            numTractors++;
+            return Command.createMoveCommand(origin);
         }
 
-        System.out.println(bales.size());
+        //System.out.println("Number of tractors:\t" + Integer.toString(numTractors));
+        //System.out.println("Number of bales:\t" + Integer.toString(bales.size()));
         //return RandomNoTrailers.getCommand(rand, tractor, bales, pairs, preemptive, balesAssignments);
         //return RandomAllTrailers.getCommand(rand, tractor, bales, pairs, preemptive, balesAssignments);
-        bales = FurthestPointCluster.updateBales(tractor, bales, balesAssignments);
-        Command c = FurthestPointCluster.getCommand(rand, tractor, bales, pairs, preemptive, balesAssignments);
-        //return FurthestPointCluster.getCommand(rand, tractor, bales, pairs, preemptive, balesAssignments);
-        //if (c == new Command(CommandType.LOAD))
-        //{
-        //    if (!tractor.getHasBale())
-        //    {
-        //        System.out.println("COMMAND: TRACTOR " + Integer.toString(Id) + " ERROR");
-        //    }
-        //}
+        bales = MasterProtocol.updateBales(tractor, bales, balesAssignments);
+        Command c = MasterProtocol.getCommand(rand, tractor, bales, pairs, preemptive, balesAssignments);
         return c; 
     }
 }

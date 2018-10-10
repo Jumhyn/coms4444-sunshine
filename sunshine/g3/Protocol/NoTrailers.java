@@ -50,6 +50,7 @@ public class NoTrailers {
         Boolean attached = tractor.getAttachedTrailer() != null;
         Boolean havePreemptive = !preemptive.get(Id).equals(nullPoint);
         Boolean areBalesRem = assignedBales.size() > 0;
+        //Boolean areBalesRem = bales.size() > 0;
         areBalesRem = areBalesRem || havePreemptive;
 
         // TODO: (attached)
@@ -73,9 +74,18 @@ public class NoTrailers {
         {
             return Command.createMoveCommand(origin);
         }
-        else
+        else if (hb && atOrigin)
         {
             return new Command(CommandType.UNLOAD);
+        }
+        else
+        {
+            BalesProtocol next = new BalesProtocol(assignedBales, -1);
+            balesAssignments.put(Id, next);
+
+            System.out.println(bales);
+            //return Command.createMoveCommand(origin);
+            return null;
         }
     }
 }

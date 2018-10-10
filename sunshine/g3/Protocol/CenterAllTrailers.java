@@ -13,7 +13,7 @@ import sunshine.sim.Trailer;
 import sunshine.g3.Util;
 import sunshine.g3.Util.*;
 
-public class CentroidAllTrailers {
+public class CenterAllTrailers {
     public static Command getCommand(Random rand,
                                      Tractor tractor,
                                      List<Point> bales,
@@ -59,8 +59,8 @@ public class CentroidAllTrailers {
         // TODO: (attached)
         if (!hb && atOrigin && attached && numBales == 0 && areBalesRem)
         {
-            Point p = Util.centroidTrailer(assignedBales);
-            //preemptive.put(Id, p);
+            //Point p = Util.centroidTrailer(assignedBales);
+            Point p = Util.weiszfeldTrailer(assignedBales);
             return Command.createMoveCommand(p);
         }
         else if (!hb && !atOrigin && attached && areBalesRem)
@@ -126,7 +126,6 @@ public class CentroidAllTrailers {
         // TODO: shouldn't always be detached
         else if (!hb && atOrigin && !attached && numBales == 0) 
         {
-            System.out.println("COMMAND: TRACTOR " + Integer.toString(Id) + " ATTACHING_NEEDLESSLY?");
             return new Command(CommandType.ATTACH);
         }
         else if (!atOrigin && numBales == 0 && !areBalesRem)
