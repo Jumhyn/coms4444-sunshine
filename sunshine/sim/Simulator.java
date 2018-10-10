@@ -25,7 +25,7 @@ import sunshine.sim.Trailer;
 import sunshine.sim.Command;
 import sunshine.sim.CommandType;
 
-public class Simulator_old {
+public class Simulator {
     
     private static class MutableTractor implements Tractor
     {
@@ -151,7 +151,7 @@ public class Simulator_old {
         
         baleLocations = Harvester.harvest(rand, m);
         numBales = baleLocations.size();
-
+        
         tractors = new ArrayList<MutableTractor>();
         trailers = new ArrayList<MutableTrailer>();
         pendingCommands = new PriorityQueue<CommandWrapper>();
