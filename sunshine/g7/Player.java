@@ -51,7 +51,9 @@ public class Player extends sunshine.queuerandom.QueuePlayer {
 
     	Point farthest = this.near.peek();
     	while (farthest != null && Math.hypot(farthest.x, farthest.y) > 300 /* Thanks Quincy! */ ) {
-    		this.far.addAll(splitter.splitUpPoints(PointUtils.pollNElements(this.near, 11*n)));
+    		int nTracker = PointUtils.numTracker(farthest, m, bales.size());
+    		System.err.println(nTracker);
+    		this.far.addAll(splitter.splitUpPoints(PointUtils.pollNElements(this.near, 11*nTracker)));
     		farthest = this.near.peek();
     	}
 
@@ -59,15 +61,20 @@ public class Player extends sunshine.queuerandom.QueuePlayer {
     	//System.out.println(this.far.size());
     }
     
+
     public ArrayList<Command> getMoreCommands(Tractor tractor)
     {
     	Task ret = new Task();
     	if(far.size() > 0) {
+    		PointClump first = far.pollFirst();
     		if(tractor.getAttachedTrailer() == null) {
     			ret.add(new Command(CommandType.ATTACH));
     		}
-    		ret.addTrailerPickup(far.pollFirst());
+    		ret.addTrailerPickup(first);
     	} else if(near.size() > 0) {
+    		if(tractor.getAttachedTrailer() != null) {
+    			ret.add(new Command(CommandType.DETATCH));
+    		}
     		ret.addRetrieveBale(near.poll());
     	} else {
     		ret.add(new Command(CommandType.ATTACH));
