@@ -60,7 +60,7 @@ public class CentroidAllTrailers {
         if (!hb && atOrigin && attached && numBales == 0 && areBalesRem)
         {
             Point p = Util.centroidTrailer(assignedBales);
-            preemptive.put(Id, p);
+            //preemptive.put(Id, p);
             return Command.createMoveCommand(p);
         }
         else if (!hb && !atOrigin && attached && areBalesRem)
@@ -73,7 +73,6 @@ public class CentroidAllTrailers {
         {
             preemptive.put(Id, nullPoint);
             return new Command(CommandType.LOAD);
-    
         }
         else if (!hb && !atOrigin && !attached && areBalesRem)
         {
@@ -114,6 +113,15 @@ public class CentroidAllTrailers {
         else if (!hb && atOrigin && numBales > 0)
         {
             return new Command(CommandType.UNSTACK);
+        }
+        else if (!hb && atOrigin && !attached && numBales == 0 && assignedBales.size() == 0) 
+        {
+            //System.out.println("COMMAND: TRACTOR " + Integer.toString(Id) + " ATTACHING_NEEDLESSLY?");
+            BalesProtocol next = new BalesProtocol(assignedBales, -1);
+            balesAssignments.put(Id, next);
+
+            return Command.createMoveCommand(origin);
+            //return new Command(CommandType.ATTACH);
         }
         // TODO: shouldn't always be detached
         else if (!hb && atOrigin && !attached && numBales == 0) 

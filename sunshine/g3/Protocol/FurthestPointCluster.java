@@ -60,7 +60,15 @@ public class FurthestPointCluster {
             }
             else
             {
-                System.out.println("COMMAND: TRACTOR " + Integer.toString(Id) + " CHANGE_PROTOCOL_TO_1");
+                System.out.print("\nCOMMAND: TRACTOR " + Integer.toString(Id) + " ASSIGNED_TO");
+                for (Point p: two.first)
+                {
+                    String x = Double.toString(p.x);
+                    String y = Double.toString(p.y);
+
+                    System.out.print("(" + x + "," + y + ")_");
+                }
+                System.out.print("\n");
                 bales = two.second;
                 protocol = 1;
                 balesAssignments.put(Id, new BalesProtocol(proposed, protocol));
@@ -118,6 +126,7 @@ public class FurthestPointCluster {
 
         if (protocol == 0)
         {
+            System.out.println("COMMAND: TRACTOR " + Integer.toString(Id) + " COMMITTING_TO_0");
             return NoTrailers.getCommand(rand,
                                          tractor,
                                          assignedBales,
@@ -127,6 +136,7 @@ public class FurthestPointCluster {
         }
         else if (protocol == 1)
         {
+            System.out.println("COMMAND: TRACTOR " + Integer.toString(Id) + " COMMITTING_TO_1");
             return CentroidAllTrailers.getCommand(rand,
                                                   tractor,
                                                   assignedBales,
