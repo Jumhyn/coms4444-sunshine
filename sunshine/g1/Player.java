@@ -307,8 +307,6 @@ public class Player implements sunshine.sim.Player {
             /// hack to not leave behind any bale
             center.x += 0.001;
             center.y += 0.001;
-
-            
             if (efficiency > 0.0D)
             	return center;
             else
