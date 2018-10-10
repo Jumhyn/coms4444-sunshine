@@ -121,7 +121,7 @@ public class Util {
     public static Double timeWithTrailer(List<Point> pointList) 
     {
         Double time;
-        Point origin = new Point(0.0, 0.0);
+        //Point origin = new Point(0.0, 0.0);
         Point centroid = Util.centroidTrailer(pointList);
         //System.out.println(centroid.x + " " + centroid.y);
         // from origin to centroid
@@ -139,7 +139,7 @@ public class Util {
     public static Double timeWithoutTrailer(List<Point> pointList) 
     {
         Double time = 0.0;;
-        Point origin = new Point(0.0, 0.0);
+        //Point origin = new Point(0.0, 0.0);
         time += 60; // detach at origin
         for (Point p : pointList) {
             time += 2 * Util.distance(p, origin)/10;
@@ -148,33 +148,37 @@ public class Util {
         return time;
     }
 
-	public static Point furthestPoint(List<Point> hb_locations){
+    public static class PointIndex 
+    {
+        public Point point;
+        public Integer index;
 
-		Point origin = new Point(0.0,0.0);
-		Point furthestPoint = new Point(0.0,0.0);
+        public PointIndex(Point p, Integer i)
+        {
+            this.point = p;
+            this.index = i;
+        }
+    }
+
+	public static Point furthestPoint(List<Point> hb_locations)
+    {
+        Point furthest = origin;
 		Double furthestDistance = 0.0;
-		Double candidate;
 
-		// List<Double> distances = new ArrayList<Double>();
-		
-
-
-		for (Point p:hb_locations){
-			
-			candidate = distance(origin,p);
-
+        for (Point p: hb_locations)
+        {
+			Double candidate = distance(origin,p);
 
 			if (candidate > furthestDistance) {
-				furthestPoint = p;
+                furthest = p;
 				furthestDistance = candidate;
 			}
-
 		}
-
-		return furthestPoint;
+		return furthest;
 	}
 
-    public static class TwoList {
+    public static class TwoList
+    {
         public List<Point> first;
         public List<Point> second;
 

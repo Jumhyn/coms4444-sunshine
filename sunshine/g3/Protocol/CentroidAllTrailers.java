@@ -13,7 +13,7 @@ import sunshine.sim.Trailer;
 import sunshine.g3.Util;
 import sunshine.g3.Util.*;
 
-public class CentroidRandomAllTrailers {
+public class CentroidAllTrailers {
     public static Command getCommand(Random rand,
                                      Tractor tractor,
                                      List<Point> bales,
@@ -59,10 +59,7 @@ public class CentroidRandomAllTrailers {
         // TODO: (attached)
         if (!hb && atOrigin && attached && numBales == 0 && areBalesRem)
         {
-            // TODO: random
             Point p = Util.centroidTrailer(assignedBales);
-            //Point p = assignedBales.remove(rand.nextInt(assignedBales.size()));
-            assignedBales.remove(rand.nextInt(assignedBales.size()));
             preemptive.put(Id, p);
             return Command.createMoveCommand(p);
         }
@@ -80,8 +77,8 @@ public class CentroidRandomAllTrailers {
         }
         else if (!hb && !atOrigin && !attached && areBalesRem)
         {
-            // TODO: random
-            Point p = assignedBales.remove(rand.nextInt(assignedBales.size()));
+            Point p = Util.furthestPoint(assignedBales);
+            assignedBales.remove(p);
             preemptive.put(Id, p);
             return Command.createMoveCommand(p);
         }
@@ -107,6 +104,11 @@ public class CentroidRandomAllTrailers {
         }
         else if (hb && atOrigin)
         {
+            if (numBales == 0)
+            {
+                BalesProtocol next = new BalesProtocol(assignedBales, -1);
+                balesAssignments.put(Id, next);
+            } 
             return new Command(CommandType.UNLOAD);
         }
         else if (!hb && atOrigin && numBales > 0)
@@ -116,6 +118,7 @@ public class CentroidRandomAllTrailers {
         // TODO: shouldn't always be detached
         else if (!hb && atOrigin && !attached && numBales == 0) 
         {
+            System.out.println("COMMAND: TRACTOR " + Integer.toString(Id) + " ATTACHING_NEEDLESSLY?");
             return new Command(CommandType.ATTACH);
         }
         else if (!atOrigin && numBales == 0 && !areBalesRem)
