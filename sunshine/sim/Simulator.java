@@ -25,7 +25,7 @@ import sunshine.sim.Trailer;
 import sunshine.sim.Command;
 import sunshine.sim.CommandType;
 
-public class Simulator_old {
+public class Simulator {
     
     private static class MutableTractor implements Tractor
     {
