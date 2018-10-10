@@ -249,6 +249,7 @@ public class Player implements sunshine.sim.Player {
                     closestP = p;
                 }
             }
+            segments.get(seg_i).remove(closestP);
             eleventhBale.put(seg_i, closestP);
         }
         
@@ -256,6 +257,12 @@ public class Player implements sunshine.sim.Player {
         for (int seg_i : eleventhBale.keySet()) {
             System.out.println("seg " + seg_i + ": (" + eleventhBale.get(seg_i).x + ", " + eleventhBale.get(seg_i).y + ")");
         }*/
+        /*int count = 0;
+        for (int i : segments.keySet()) {
+            System.out.println("seg " + i + " number of bales: " + segments.get(i).size());
+            count += segments.get(i).size();
+        }
+        System.out.println("check numFarBales: " + (count + eleventhBale.size()));*/
         
 
 
