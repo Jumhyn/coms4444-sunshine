@@ -289,7 +289,22 @@ public class Player implements sunshine.sim.Player {
             
             double[] centerCoordinate = WeiszfeldAlgorithm.process(input).getPointCoordinate();
             
-            return new Point(centerCoordinate[0], centerCoordinate[1]);
+            Point center = new Point(centerCoordinate[0], centerCoordinate[1]);
+            Point origin = new Point(0.0D, 0.0D);
+            double efficiency = 0.0D; // The time saved from using trailer strategy
+            
+            for (Point p : cluster) {
+            	// For each point, we go back to the trailer instead of the origin
+            	efficiency += 0.2D * (distance(p, origin) - distance(p, center));
+            }
+            efficiency -= 0.5D * distance(center, origin) // Carrying trailer from and back to the origin
+            		+ (cluster.size() - 1) * 20.0D // Stacking & unstacking cost
+            		+ 240.0D; // attaching & detatching cost
+            
+            if (efficiency > 0.0D)
+            	return center;
+            else
+            	return null;
             
         	/*
             Point center = new Point(0,0);
@@ -520,6 +535,9 @@ public class Player implements sunshine.sim.Player {
         
     }
 
+    private static double distance(Point p1, Point p2) {
+    	return Math.sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
+    }
 
 
 }
