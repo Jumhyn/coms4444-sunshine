@@ -1,6 +1,6 @@
 package sunshine.g2;
 import java.util.ArrayList;
-
+import java.lang.*;
 import java.util.List;
 import java.util.Collections;
 import java.util.List;
@@ -24,25 +24,34 @@ public class Player implements sunshine.sim.Player {
     private int counter;
     List<Point> balesList;
     Point balesListCenter;
-
+    List<List<Point>> bucketAnchors;
+    List<List<Cluster>> buckets;
+    private List<Point> clusterAnchors;
     private Map<Integer, List<Command>> commandCenter;
     private Map<Point, List<Point>> farPoints;
+    private List<Cluster> sortedClusters;
     private int numTractors;
     private double edgeLength;
     private double time;
+    private int numBins;
 
     public Player() {
         rand = new Random(seed);
         commandCenter = new HashMap<Integer, List<Command>>();
         farPoints = new HashMap<Point, List<Point>>();
+        sortedClusters = new ArrayList<Cluster>();
         numTractors = 0;
         edgeLength = 0.0;
         time = 0.0;
+        numBins = 0;
     }
     
     public void init(List<Point> bales, int n, double m, double t)
     {
         this.bales = new ArrayList<Point>(bales);
+        clusterAnchors = new ArrayList<Point>();
+        bucketAnchors = new ArrayList<>();
+        buckets = new ArrayList<>();
         Collections.sort(this.bales, 
             new Comparator(){
                 @Override
@@ -57,9 +66,9 @@ public class Player implements sunshine.sim.Player {
         numTractors = n;
         edgeLength = m;
         time = t;
+        numBins = numTractors / 2;
         for (int i = 0; i < numTractors; i++) {
             List<Command> commands = new ArrayList<Command>();
-            commands.add(new Command(CommandType.DETATCH));
             commandCenter.put(i, commands);
         }
 
@@ -72,72 +81,345 @@ public class Player implements sunshine.sim.Player {
             double disToOrigin = calcEucDistance(new Point(0.0, 0.0), p);
             if (disToOrigin > 175) {
                 List<Point> ten = getNearestTenBales(p);
-                farPoints.put(p, ten);
+                // farPoints.put(p, ten);
+                List<Point> c = new ArrayList<Point>(ten);
+                c.add(p);
+                int index = getNearestToOrigin(c);
+                Point anchor = c.remove(index);
+                clusterAnchors.add(anchor);
+                Cluster cluster = new Cluster(anchor, c);
+                sortedClusters.add(cluster);
+                ////////////////////////////////////////to do!!!!!!!!!!!!!!!! fill the queue
             }
             else {
                 this.bales.add(0, p);
                 break;
             }
         }
-
-        // System.out.println("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&map size: " + farPoints.size());
-        while (this.bales.size() != 0 || farPoints.size() != 0) {
-            for (int i = 0; i < numTractors; i++) {
-                if (this.bales.size() != 0 || farPoints.size() != 0) {
-                    oneTrip(i);
-                }
-            }
-        }
-
-     //    balesList = new ArrayList<Point>();
-     //    counter = 0;
-    	// balesListCenter = this.bales.get(getFurthestBale());
-    	// buildList();
+        bucketClusters();
+        System.out.println(bucketAnchors.size());
+        System.out.println(buckets.size());
+        System.out.println(bucketAnchors.get(0).size());
+        System.out.println(buckets.get(0).size());
+        Collections.sort(sortedClusters);
     }
 
-    // when the tractor is back to the original
-    private void oneTrip(int tractorID) {
-        if (farPoints.size() != 0) {
-            Map.Entry<Point, List<Point>> entry = farPoints.entrySet().iterator().next();
 
-            List<Point> cluster = new ArrayList<Point>();
-            cluster.add(entry.getKey());
-            List<Point> nearBales = entry.getValue();
-            for(int i=0; i < nearBales.size();i++){
-              cluster.add(nearBales.get(i));
-            }
-            int minIndex = getNearestToOrigin(cluster);
-            Point nearest = cluster.get(minIndex);
-            cluster.remove(minIndex);
 
-            farPoints.remove(entry.getKey());
-            collectWithTrailer(tractorID, nearest, cluster);
-        }
-        else {
-            Point p = bales.remove(0);
-            collectWithoutTrailer(tractorID, p);
-        }
 
-        // System.out.println("***************************************tractor ID is: " + tractorID + "**********************************************");
-    }
 
-    private void collectWithoutTrailer(int tractorID, Point p) {
+
+// private void handleClusters(Tractor tractor) {
+
+//         if (tractor.getId() % 2 == 0) {
+//             // Iterate through bin of clusters for this tractor
+//             Cluster cluster = sortedClusters.remove(sortedClusters.size() - 1);
+//             collectWithTrailer(tractor, cluster.getAnchor(), cluster.getOthers());
+//         } else {
+//             // populate list with clusters this tractor is responsible for condensing
+//             // Chinmay returns list of clusters which are near each other
+//             //  Cluster cluster = sortedClusters.remove(sortedClusters.size() - 1);
+            
+//             Cluster cluster = sortedClusters.remove(sortedClusters.size() - 1);
+//             condenseCluster(tractor, cluster.getAnchor(), cluster.getOthers());
+
+//             // After all dedicated clusters have been condensed, run the greedy collection
+//             // Algorithm on the remaining bales
+//             Point p = bales.remove(0);
+//             collectGreedy(tractor, p);
+
+//             // Alternatively go help unload the trailers at home
+//             commands.add(Command.createMoveCommand(new Point(0.0, 0.0)));
+//             // cycle through unloading trailers
+//             // KEEP global variable of trailers that are currently being unloaded to query their current capacity
+//             // if trailer capacity > 3
+//             commands.add(new Command(CommandType.UNSTACK));
+//             commands.add(new Command(CommandType.UNLOAD));
+
+//         }
+//         // if (sortedClusters.size() != 0) {
+//         //     Cluster cluster = sortedClusters.remove(sortedClusters.size() - 1);
+//         //     collectWithTrailer(tractor, cluster.getAnchor(), cluster.getOthers());
+//         // }
+
+//         // else {
+//         //     Cluster cluster = sortedClusters.remove(sortedClusters.size() - 1);
+//         //     collectWithoutTrailer(tractor, cluster.getAnchor(), cluster.getOthers());
+//         // }
+
+//         // System.out.println("**************************************tractor ID is: " + tractorID + "*********************************************");
+//     }
+
+    private void condenseCluster(Tractor tractor, Point p, List<Point> ten) {
+        int tractorID = tractor.getId();
         List<Command> commands = commandCenter.get(tractorID);
+        if (tractor.getAttachedTrailer() != null) {
+            commands.add(new Command(CommandType.DETATCH));
+        }
+
+        for (Point bale: ten) {
+            commands.add(Command.createMoveCommand(bale));
+            commands.add(new Command(CommandType.LOAD));
+            commands.add(Command.createMoveCommand(p));
+            commands.add(new Command(CommandType.UNLOAD));
+        }
+    }
+
+    private void collectGreedy(Tractor tractor, Point p) {
+        int tractorID = tractor.getId();
+        List<Command> commands = commandCenter.get(tractorID);
+        if (tractor.getAttachedTrailer() != null) {
+            commands.add(new Command(CommandType.DETATCH));
+        }
         commands.add(Command.createMoveCommand(p));
         commands.add(new Command(CommandType.LOAD));
         commands.add(Command.createMoveCommand(new Point(0.0, 0.0)));
         commands.add(new Command(CommandType.UNLOAD));
     }
 
-    private void collectWithTrailer(int tractorID, Point p, List<Point> ten) {
+    // private void collectWithTrailer(Tractor tractor, Point p, List<Point> ten) {
+    //     int tractorID = tractor.getId();
+    //     List<Command> commands = commandCenter.get(tractorID);
+
+    //     // forward trip
+    //     if (tractor.getAttachedTrailer() == null) {
+    //         commands.add(new Command(CommandType.ATTACH));
+    //     }
+    //     commands.add(Command.createMoveCommand(p));
+    //     commands.add(new Command(CommandType.DETATCH));
+    //     for (Point bale : ten) {
+    //         commands.add(Command.createMoveCommand(bale));
+    //         commands.add(new Command(CommandType.LOAD));
+    //         commands.add(Command.createMoveCommand(p));
+    //         commands.add(new Command(CommandType.STACK));
+    //     }
+    //     commands.add(new Command(CommandType.LOAD));
+    //     commands.add(new Command(CommandType.ATTACH));
+
+    //     //backward trip
+    //     commands.add(Command.createMoveCommand(new Point(0.0, 0.0)));
+    //     commands.add(new Command(CommandType.DETATCH));
+    //     commands.add(new Command(CommandType.UNLOAD));
+    //     for (int i = 0; i < ten.size(); i++) {
+    //         commands.add(new Command(CommandType.UNSTACK));
+    //         commands.add(new Command(CommandType.UNLOAD));
+    //     }
+
+    //     // possible callback function
+    // }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public List<Point> closestAnchors(List<Point> anchorsCopy,int bucketSize){
+        List<Point> anchors = new ArrayList<Point>(anchorsCopy);
+        Point p = anchors.get(0);
+        anchors.remove(p);
+        PriorityQueue<Point> sortedToPoint = new PriorityQueue<Point>(anchors.size(), 
+            new Comparator(){
+                public int compare(Object o1, Object o2) {
+                    Point p1 = (Point) o1;
+                    Point p2 = (Point) o2;
+                    return (int) Math.signum((p1.x - p.x) * (p1.x - p.x) + (p1.y - p.y) * (p1.y - p.y) - (p2.x - p.x) * (p2.x - p.x) - (p2.y - p.y) * (p2.y - p.y));
+               }
+            }
+        );
+        for (Point bale : anchors) {
+            sortedToPoint.add(bale);
+        }
+        List<Point> result = new ArrayList<Point>();
+        int numBales = bucketSize;
+        if (sortedToPoint.size() < numBales) {
+            numBales = sortedToPoint.size();
+        }
+        for (int i = 0; i < numBales; i++) {
+            Point point = sortedToPoint.poll();
+            result.add(point);
+        }
+        return result;
+    }
+    public void bucketClusters(){
+        int bucketSize = (int) Math.floor(2.0*sortedClusters.size()/numTractors);
+        int times = sortedClusters.size() - bucketSize*numTractors/2;
+        List<Point> anchors = new ArrayList<Point>(clusterAnchors);
+        bucketSize += 1;
+        while(anchors.size()!=0){
+            if(times==0){
+                bucketSize-=1;
+            }
+            List<Cluster> temp = new ArrayList<Cluster>();
+            List<Point> temp2 = new ArrayList<Point>();
+            List<Point> closestPoints = new ArrayList<Point>();
+            closestPoints = closestAnchors(anchors,bucketSize-1);
+            Point p = anchors.get(0);
+            temp2.add(p);
+            for(int j=0;j<sortedClusters.size();j++){
+                if ((sortedClusters.get(j).getAnchor().x==p.x)&&(sortedClusters.get(j).getAnchor().y==p.y)){
+                    temp.add(sortedClusters.get(j));
+                    break;
+                }
+            }
+            anchors.remove(p);
+            for(int i=0;i<closestPoints.size();i++){
+                p = closestPoints.get(i);
+                temp2.add(p);
+                for(int j=0;j<sortedClusters.size();j++){
+                    if ((sortedClusters.get(j).getAnchor().x==p.x)&&(sortedClusters.get(j).getAnchor().y==p.y)){
+                        temp.add(sortedClusters.get(j));
+                        break;
+                    }
+                }
+                anchors.remove(p);
+            }
+            buckets.add(temp);
+            bucketAnchors.add(temp2);
+            times-=1;
+        }
+    }
+
+    private void oneTrip(Tractor tractor) {
+
+        int index = getBin(tractor);
+        if (isHelper(tractor) && buckets.get(index).size() != 0) {
+        	List<Cluster> clusters = buckets.get(index);
+        	Cluster c = clusters.remove(clusters.size() - 1);
+        	System.out.println(clusters.size());
+            condenseCluster(tractor, c.getAnchor(), c.getOthers());
+        }
+        else if (bucketAnchors.get(index).size() != 0) {
+            // haul clusters back with trailer
+            List<Point> anchors = bucketAnchors.get(index);
+            Point p = anchors.remove(anchors.size() - 1);
+            collectWithTrailer(tractor, p);
+        }
+        else {
+            Point p = bales.remove(0);
+            collectWithoutTrailer(tractor, p);
+        }
+        // if (sortedClusters.size() != 0) {
+        //     Cluster cluster = sortedClusters.remove(sortedClusters.size() - 1);
+        //     collectWithTrailer(tractor, cluster.getAnchor(), cluster.getOthers());
+        // }
+        // else {
+        //     Point p = bales.remove(0);
+        //     collectWithoutTrailer(tractor, p);
+        // }
+        // System.out.println("***************************************tractor ID is: " + tractorID + "**********************************************");
+    }
+
+    private int getBin(Tractor tractor) {
+        int tractorID = tractor.getId();
+        return tractorID / 2;
+    }
+
+    private boolean isHelper(Tractor tractor) {
+        int tractorID = tractor.getId();
+        return (tractorID % 2 == 0) ?true: false;
+    }
+    // private void oneTrip(Tractor tractor) {
+    //     if (farPoints.size() != 0) {
+    //         Map.Entry<Point, List<Point>> entry = farPoints.entrySet().iterator().next();
+
+    //         List<Point> cluster = new ArrayList<Point>();
+    //         cluster.add(entry.getKey());
+    //         List<Point> nearBales = entry.getValue();
+    //         for(int i=0; i < nearBales.size();i++){
+    //           cluster.add(nearBales.get(i));
+    //         }
+    //         int minIndex = getNearestToOrigin(cluster);
+    //         Point nearest = cluster.get(minIndex);
+    //         cluster.remove(minIndex);
+
+    //         farPoints.remove(entry.getKey());
+    //         collectWithTrailer(tractor, nearest, cluster);
+    //     }
+    //     else {
+    //         Point p = bales.remove(0);
+    //         collectWithoutTrailer(tractor, p);
+    //     }
+
+    //     // System.out.println("***************************************tractor ID is: " + tractorID + "**********************************************");
+    // }
+
+    // when the tractor is back to the original
+    // private void oneTrip(Tractor tractor) {
+    //     if (sortedClusters.size() != 0) {
+    //         Cluster cluster = sortedClusters.remove(sortedClusters.size() - 1);
+    //         collectWithTrailer(tractor, cluster.getAnchor(), cluster.getOthers());
+    //     }
+    //     else {
+    //         Point p = bales.remove(0);
+    //         collectWithoutTrailer(tractor, p);
+    //     }
+    // }
+
+    private void collectWithoutTrailer(Tractor tractor, Point p) {
+        int tractorID = tractor.getId();
+        List<Command> commands = commandCenter.get(tractorID);
+        if (tractor.getAttachedTrailer() != null) {
+            commands.add(new Command(CommandType.DETATCH));
+        }
+        commands.add(Command.createMoveCommand(p));
+        commands.add(new Command(CommandType.LOAD));
+        commands.add(Command.createMoveCommand(new Point(0.0, 0.0)));
+        commands.add(new Command(CommandType.UNLOAD));
+    }
+
+    // private void collectWithTrailer(Tractor tractor, Point p, List<Point> ten) {
+    //     int tractorID = tractor.getId();
+    //     List<Command> commands = commandCenter.get(tractorID);
+
+    //     // forward trip
+    //     if (tractor.getAttachedTrailer() == null) {
+    //         commands.add(new Command(CommandType.ATTACH));
+    //     }
+    //     commands.add(Command.createMoveCommand(p));
+    //     commands.add(new Command(CommandType.DETATCH));
+    //     for (Point bale : ten) {
+    //         commands.add(Command.createMoveCommand(bale));
+    //         commands.add(new Command(CommandType.LOAD));
+    //         commands.add(Command.createMoveCommand(p));
+    //         commands.add(new Command(CommandType.STACK));
+    //     }
+    //     commands.add(new Command(CommandType.LOAD));
+    //     commands.add(new Command(CommandType.ATTACH));
+
+    //     //backward trip
+    //     commands.add(Command.createMoveCommand(new Point(0.0, 0.0)));
+    //     commands.add(new Command(CommandType.DETATCH));
+    //     commands.add(new Command(CommandType.UNLOAD));
+    //     for (int i = 0; i < ten.size(); i++) {
+    //         commands.add(new Command(CommandType.UNSTACK));
+    //         commands.add(new Command(CommandType.UNLOAD));
+    //     }
+
+    //     // possible callback function
+    // }
+
+    private void collectWithTrailer(Tractor tractor, Point p) {
+        int tractorID = tractor.getId();
         List<Command> commands = commandCenter.get(tractorID);
 
         // forward trip
-        commands.add(new Command(CommandType.ATTACH));
+        if (tractor.getAttachedTrailer() == null) {
+            commands.add(new Command(CommandType.ATTACH));
+        }
         commands.add(Command.createMoveCommand(p));
         commands.add(new Command(CommandType.DETATCH));
-        for (Point bale : ten) {
-            commands.add(Command.createMoveCommand(bale));
+        for (int i =0; i < 10; i++) {
+            commands.add(Command.createMoveCommand(p));
             commands.add(new Command(CommandType.LOAD));
             commands.add(Command.createMoveCommand(p));
             commands.add(new Command(CommandType.STACK));
@@ -149,7 +431,7 @@ public class Player implements sunshine.sim.Player {
         commands.add(Command.createMoveCommand(new Point(0.0, 0.0)));
         commands.add(new Command(CommandType.DETATCH));
         commands.add(new Command(CommandType.UNLOAD));
-        for (int i = 0; i < ten.size(); i++) {
+        for (int i = 0; i < 10; i++) {
             commands.add(new Command(CommandType.UNSTACK));
             commands.add(new Command(CommandType.UNLOAD));
         }
@@ -264,11 +546,16 @@ public class Player implements sunshine.sim.Player {
         int tractorID = tractor.getId();
         List<Command> commands = commandCenter.get(tractorID);
 
+        if (commands.size() == 0 && bales.size() != 0) {
+            oneTrip(tractor);
+        }
+
         if (commands.size() == 0) {
             return new Command(CommandType.UNLOAD);
         }
-
-        return commands.remove(0);
+        else {
+            return commands.remove(0);
+        }
   //       if(tractor.getLocation().equals(new Point(0.0,0.0)) && tractor.getAttachedTrailer()!=null && balesList.size()!=0){
 		// 	return Command.createMoveCommand(balesListCenter);
   //       }
@@ -326,7 +613,34 @@ public class Player implements sunshine.sim.Player {
     	}
     }
 
+    /* A new data structure to represent each cluster in the field. A cluster is 
+    consisted of one anchor, which is the closest Point to the origin among the 11
+    Points, and other 10 Points.
+    */
 
+    private class Cluster implements Comparable<Cluster>{
+        Point anchor;
+        List<Point> others;
+
+        public Cluster (Point a, List<Point> o) {
+            anchor = new Point(a.x, a.y);
+            others = new ArrayList<Point>(o);
+        }
+
+        public Point getAnchor() {
+            return new Point(anchor.x, anchor.y);
+        }
+
+        public List<Point> getOthers() {
+            return new ArrayList<Point>(others);
+        }
+
+        @Override
+        public int compareTo(Cluster cluster) {
+            return (int) Math.signum(anchor.x * anchor.x + anchor.y * anchor.y - cluster.anchor.x * cluster.anchor.x - cluster.anchor.y * cluster.anchor.y);
+        }
+
+    }
 
     
 }
