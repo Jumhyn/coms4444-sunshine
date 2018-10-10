@@ -74,19 +74,18 @@ public class Player implements sunshine.sim.Player
 
 	// Will break a list into a list<list>, maxmimize all lists up to n.
 	// The last list may be size n or less
-	public List<List<Point>> split_list_n(List<Point> full, int n)
+	public ArrayList<List<Point>> split_list_n(List<Point> full, int n)
 	{
-		List<List<Point>> split = new List<List<Point>>();
+		ArrayList<List<Point>> split = new ArrayList<List<Point>>();
 		for (int i = 0; i < full.size();i+=n)
 		{
-			List<Point> chunk = new List<Point>();
+			List<Point> chunk = new ArrayList<Point>();
 			for (int j = i; j < n; j++)
 			{
 				// Edge case: last batch has less than 11 bales
 				if(j >= full.size())
 				{
 					return split;
-					break;
 				}
 				chunk.add(full.get(j));
 			}
@@ -100,16 +99,16 @@ public class Player implements sunshine.sim.Player
 	{
 		if(split == 1)
 		{
-			this.trailer_bales = bales;
-			this.tractor_bales = new List<Point>();
+			this.tractor_bales = bales;
+			this.trailer_bales = new ArrayList<Point>();
 			return;
 		}
 		// split determines the fraction going to tractor.
 		// e.g 1/2 means 1/2 tractor 1/2 trailer
 		// e.g 1/3 means 1/3 tractor and 2/3 trailer
-		int split_idx = (int) bales.length * split;
+		int split_idx = (int) (bales.size() * split);
 		this.trailer_bales = bales.subList(0, split_idx);
-		this.tractor_bales = bales.subList(split_idx, bales.length);
+		this.tractor_bales = bales.subList(split_idx, bales.size());
 	}
 
 	public void init(List<Point> bales, int n, double m, double t)
@@ -176,10 +175,10 @@ public class Player implements sunshine.sim.Player
 		// Extra Consideration. If last tractor has a trailer attached...
 		// We need to see if it is empty
 		// if empty, we must compute if it is faster to detach and run to barn or just go now
-		if(trailer_bales.isEmpty() && tractor_bales.isEmpty())
-		{
-			return Command.createMoveCommand(BARN);
-		}
+		//if(trailer_bales.isEmpty() && tractor_bales.isEmpty())
+		//{
+		//	return Command.createMoveCommand(BARN);
+		//}
 		
 		// Andrew will be testing some stuff with just 1 tractor
 		if(n_tractors == 1)
@@ -318,7 +317,18 @@ public class Player implements sunshine.sim.Player
 				{
 					if (tractor.getAttachedTrailer() == null) 
 					{
-						Point p = tractor_bales.remove(tractor_bales.size()-1);
+						Point p;
+						if(trailer_bales.isEmpty() && tractor_bales.isEmpty())
+						{
+							// Thus is the same as NO-OP
+							// REQUEST PROFESSOR ROSS TO MAKE NO-OP COST NOTHING!
+							return new Command(CommandType.DETATCH);
+							//return Command.createMoveCommand(BARN);
+						}
+						else
+						{
+							p = tractor_bales.remove(tractor_bales.size()-1);
+						}
 						return Command.createMoveCommand(p);
 					} 
 					else 
