@@ -2,32 +2,39 @@ package sunshine.g7;
 
 import java.util.List;
 import java.util.Collections;
-import java.util.List;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.HashMap;
 import java.util.PriorityQueue;
 import java.util.Comparator;
+import java.util.LinkedList;
 
 import sunshine.sim.Command;
 import sunshine.sim.Tractor;
+import sunshine.sim.Trailer;
 import sunshine.sim.CommandType;
 import sunshine.sim.Point;
 
 
-public class Player implements sunshine.sim.Player {
+public class Player extends sunshine.queuerandom.QueuePlayer {
     // Random seed of 42.
     private int seed = 42;
     private Random rand;
     
-    PriorityQueue<Point> bales;
+    PriorityQueue<Point> near;
+    LinkedList<PointClump> far;
+    //List<PointClump> currentClump;
 
     public Player() {
         rand = new Random(seed);
     }
     
+    @Override
     public void init(List<Point> bales, int n, double m, double t)
     {
-    	this.bales = new PriorityQueue<Point>(bales.size(),
+    	super.init(bales, n, m, t);
+
+    	this.near = new PriorityQueue<Point>(bales.size(),
     	    new Comparator(){
 		       public int compare(Object o1, Object o2) {
 		       	    Point p1 = (Point) o1;
@@ -36,60 +43,43 @@ public class Player implements sunshine.sim.Player {
 		       }
         	} 
     	);
-        
-        for (Point p: bales) {
-            this.bales.add(p);
-        }
+    	this.near.addAll(bales);
+
+    	AbstractSplitter splitter = new CircleLineSplitter();
+    	this.far = new LinkedList<PointClump>();
+        //this.currentClump = new ArrayList<PointClump>();
+
+    	Point farthest = this.near.peek();
+    	while (farthest != null && Math.hypot(farthest.x, farthest.y) > 300 /* Thanks Quincy! */ ) {
+    		int nTracker = PointUtils.numTracker(farthest, m, bales.size());
+    		System.err.println(nTracker);
+    		this.far.addAll(splitter.splitUpPoints(PointUtils.pollNElements(this.near, 11*nTracker)));
+    		farthest = this.near.peek();
+    	}
+
+    	//System.out.println(this.near.size());
+    	//System.out.println(this.far.size());
     }
     
-    public Command getCommand(Tractor tractor)
+
+    public ArrayList<Command> getMoreCommands(Tractor tractor)
     {
-        if (tractor.getHasBale())
-        {
-            if (tractor.getLocation().equals(new Point(0.0, 0.0)))
-            {
-                return new Command(CommandType.UNLOAD);
-            }
-            else
-            {
-                return Command.createMoveCommand(new Point(0.0, 0.0));
-            }
-        }
-        else
-        {
-            if (tractor.getLocation().equals(new Point(0.0, 0.0)))
-            {
-                // if (rand.nextDouble() > 0.5)
-                // {
-                //     if (tractor.getAttachedTrailer() == null)
-                //     {
-                //         return new Command(CommandType.ATTACH);
-                //     }
-                //     else
-                //     {
-                //         return new Command(CommandType.DETATCH);
-                //     }
-                // }
-                // else 
-                if (tractor.getAttachedTrailer()!=null){
-                	return new Command(CommandType.DETATCH);
-                }
-                else
-                if (bales.size() > 0)
-                {
-                    //Point p = bales.remove(rand.nextInt(bales.size()));
-                    Point p = bales.poll();
-                    return Command.createMoveCommand(p);
-                }
-                else
-                {
-                    return null;
-                }
-            }
-            else
-            {
-                return new Command(CommandType.LOAD);
-            }
-        }
+    	Task ret = new Task();
+    	if(far.size() > 0) {
+    		PointClump first = far.pollFirst();
+    		if(tractor.getAttachedTrailer() == null) {
+    			ret.add(new Command(CommandType.ATTACH));
+    		}
+    		ret.addTrailerPickup(first);
+    	} else if(near.size() > 0) {
+    		if(tractor.getAttachedTrailer() != null) {
+    			ret.add(new Command(CommandType.DETATCH));
+    		}
+    		ret.addRetrieveBale(near.poll());
+    	} else {
+    		ret.add(new Command(CommandType.ATTACH));
+    	}
+
+    	return ret;
     }
 }
