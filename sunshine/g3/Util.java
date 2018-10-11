@@ -407,7 +407,7 @@ public class Util {
         else
         {
             Double theta = Math.atan2(dest.y - source.y, dest.x - source.x);
-            Double scale = 0.99;
+            Double scale = 0.999999;
             //Double scale = 0.0;
             Double x_new = step(scale, source.x, dist, theta, 0);
             Double y_new = step(scale, source.y, dist, theta, 1);
