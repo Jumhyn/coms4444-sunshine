@@ -1,6 +1,7 @@
 package sunshine.g3.Protocol;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.HashMap;
 
@@ -30,6 +31,9 @@ public class CenterAllTrailers {
         Point trailerLoc;
 
         List<Point> assignedBales = balesAssignments.get(Id).balesLocations;
+        List<Point> allBales = new ArrayList<Point>();
+        allBales.addAll(assignedBales);
+        allBales.addAll(bales);
    
         if (tractor.getAttachedTrailer() == null)
         {
@@ -48,11 +52,14 @@ public class CenterAllTrailers {
         }
     
         Boolean hb = tractor.getHasBale();
-        Boolean atOrigin = tracLoc.equals(origin) || tracLoc.equals(originT);
         //Boolean atOrigin = tracLoc.equals(origin);
+        //Boolean atOrigin = tracLoc.equals(origin) || tracLoc.equals(originT);
+        Boolean atOrigin = Util.distance(tracLoc, origin) <= 1;
         Boolean attached = tractor.getAttachedTrailer() != null;
         Boolean atTrailer = tracLoc.equals(trailerLoc);
-        Boolean atPreemptive = tracLoc.equals(preemptive.get(Id));
+        //Boolean atTrailer = Util.distance(tracLoc, trailerLoc) <= 1;
+        //Boolean atPreemptive = tracLoc.equals(preemptive.get(Id));
+        Boolean atPreemptive = Util.distance(tracLoc, preemptive.get(Id)) <= 1;
         Boolean havePreemptive = !preemptive.get(Id).equals(nullPoint);
         Integer numBales = trailer.getNumBales();
         Boolean areBalesRem = assignedBales.size() > 0;
@@ -81,11 +88,15 @@ public class CenterAllTrailers {
             Point p = Util.furthestPoint(assignedBales);
             assignedBales.remove(p);
             preemptive.put(Id, p);
-            return Command.createMoveCommand(p);
+            //return Command.createMoveCommand(p);
+            System.out.println("DISTANCE:\t" + Double.toString(Util.distance(p, tracLoc)));
+            System.out.println("DISTANCE SAVED:\t" + Double.toString(Util.distance(p, Util.shortcut(tracLoc, p, allBales))));
+            return Command.createMoveCommand(Util.shortcut(tracLoc, p, allBales));
         }
         else if (hb && !atOrigin && !attached && !atTrailer)
         {
             return Command.createMoveCommand(trailerLoc);
+            //return Command.createMoveCommand(Util.shortcut(tracLoc, trailerLoc, allBales));
         }
         else if (hb && !atOrigin && !attached && atTrailer && numBales < 10)
         {
@@ -140,6 +151,7 @@ public class CenterAllTrailers {
         else if (!atOrigin && !atTrailer && numBales > 0 && !areBalesRem)
         {
             return Command.createMoveCommand(trailerLoc);
+            //return Command.createMoveCommand(Util.shortcut(tracLoc, trailerLoc, allBales));
         }
         else if (!atOrigin && !areBalesRem && !attached && atTrailer)
         {
@@ -160,8 +172,3 @@ public class CenterAllTrailers {
         }
     }
 }
-
-
-
-
-

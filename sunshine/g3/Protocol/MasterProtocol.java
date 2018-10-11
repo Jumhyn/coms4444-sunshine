@@ -59,6 +59,10 @@ public class MasterProtocol {
                 for (BalesProtocol bp: balesAssignments.values())
                 {
                 }
+                if (bales.contains(new Point(74.94436541002597,39.0040571209928)))
+                {
+                    System.out.println("THERE IT IS");
+                }
 
                 protocol = 0; // 0 - NoTrailers
                 balesAssignments.put(Id, new BalesProtocol(bales, protocol));
@@ -66,6 +70,24 @@ public class MasterProtocol {
             else
             {
                 Util.printCommand(Id, "COMMITTING_TO_1");
+
+                if (proposed.contains(new Point(74.94436541002597,39.0040571209928)))
+                {
+                    System.out.println("THERE IT IS");
+                }
+                else if (two.second.contains(new Point(74.94436541002597,39.0040571209928)))
+                {
+                    System.out.println("THERE IT IS NOW");
+                }
+
+                // TODO: Test
+                System.out.printf("\nCOMMAND: Tractor " + Integer.toString(Id) + " ASSIGNED_TO_");
+                for (Point p: proposed)
+                {
+                    System.out.printf("(" + Double.toString(p.x) + "," + Double.toString(p.y) + ")_");
+                }
+                System.out.printf("\n");
+
                 bales = two.second;
                 protocol = 1; // 1 - CenterAllTrailers
                 balesAssignments.put(Id, new BalesProtocol(proposed, protocol));
