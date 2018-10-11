@@ -375,23 +375,107 @@ public class Util {
         System.out.println("COMMAND: Tractor " + Integer.toString(Id) + " " + command);
     }
 
+    public static Point trailerOrigin(Integer Id)
+    {
+        Double xy = 1.0 / Math.sqrt(2.0);
+        Double scale = 1.0 - (1.0 / (2 * (Double.valueOf(Id) + 1.0)));
+        xy = xy * scale;
+        return new Point(xy, xy);
+    }
+
+    public static Double step(Double scale, Double coordinate, Double r, Double theta, Integer trig)
+    {
+        if (trig == 0)
+        {
+            return coordinate + (r - scale) * Math.cos(theta);
+        }
+        else
+        {
+            return coordinate + (r - scale) * Math.sin(theta);
+        }
+    }
+
+    public static Point shortcut(Point source, Point dest, List<Point> pointList)
+    {
+        Double dist = distance(source, dest);
+        System.out.println("DISTANCE?:\t" + Double.toString(dist));
+        if (dist <= 1.0)
+        {
+            System.out.println("NOT SAVING ANY DISTANCE");
+            return dest;
+        }
+        else
+        {
+            Double theta = Math.atan2(dest.y - source.y, dest.x - source.x);
+            Double scale = 0.999999;
+            //Double scale = 0.0;
+            Double x_new = step(scale, source.x, dist, theta, 0);
+            Double y_new = step(scale, source.y, dist, theta, 1);
+            //Double x_new = source.x + (dist - scale) * Math.cos(theta);
+            //Double y_new = source.y + (dist - scale) * Math.sin(theta);
+            //if (distance(dest, new Point(x_new, y_new)) > 1)
+            //{
+            //    scale = 0.999;
+            //    x_new = step(scale, source.x, dist, theta, 0);
+            //    y_new = step(scale, source.y, dist, theta, 1);
+            //}
+
+            Point sc = new Point(x_new, y_new);
+            Point nearest = nearestPoint(sc, pointList);
+
+            while (distance(sc, nearest) < distance(sc, dest))
+            {
+                System.out.println("step step step");
+                System.out.println("SHORTCUT:\t" + "(" + Double.toString(sc.x) + "," + Double.toString(sc.y) + ")");
+                System.out.println("DESIRED:\t" + "(" + Double.toString(dest.x) + "," + Double.toString(dest.y) + ")");
+                System.out.println("DESIRED DISTANCE:\t" + Double.toString(distance(sc, dest)));
+                System.out.println("NEAREST:\t" + "(" + Double.toString(nearest.x) + "," + Double.toString(nearest.y) + ")");
+                System.out.println("NEAREST DISTANCE:\t" + Double.toString(distance(sc, nearest)));
+
+                scale = scale - 0.001;
+                x_new = step(scale, source.x, dist, theta, 0);
+                y_new = step(scale, source.y, dist, theta, 1);
+
+                sc = new Point(x_new, y_new);
+                nearest = nearestPoint(sc, pointList);
+            }
+            return sc;
+        }
+    }
+
+    public static Point shortcut(Point source, Point dest)
+    {
+        Double dist = distance(source, dest);
+        System.out.println("DISTANCE?:\t" + Double.toString(dist));
+        if (dist <= 1.0)
+        {
+            System.out.println("NOT SAVING ANY DISTANCE");
+            return dest;
+        }
+        else
+        {
+            Double theta = Math.atan2(dest.y - source.y, dest.x - source.x);
+            Double scale = .99;
+            //Double scale = 0.0;
+            Double x_new = step(scale, source.x, dist, theta, 0);
+            Double y_new = step(scale, source.y, dist, theta, 1);
+            //Double x_new = source.x + (dist - scale) * Math.cos(theta);
+            //Double y_new = source.y + (dist - scale) * Math.sin(theta);
+            //if (distance(dest, new Point(x_new, y_new)) >= 1)
+            //{
+            //    scale = 0.99;
+            //    x_new = step(scale, source.x, dist, theta, 0);
+            //    y_new = step(scale, source.y, dist, theta, 1);
+            //}
+
+            Point sc = new Point(x_new, y_new);
+            return sc;
+        }
+    }
+
     public static void main(String[] args)
     {
-        Random rand = new Random();
-        //List<Point> baleLocations = Harvester.harvest(rand, 100);
-        List<Point> baleLocations = new ArrayList<Point>();
-        baleLocations.add(new Point(6.0, 0.0));
-        //System.out.println(baleLocations.size());
-
-        weiszfeldTrailer(baleLocations);
-        //Point p = furthestPoint(baleLocations);
-        //System.out.println(p.x + " " + p.y);
-
-        //TwoList nearestPoints = nearest_Bales(p, baleLocations);
-        //System.out.println(nearestPoints.toLoad.size());
-        //System.out.println(nearestPoints.toLoad);
-        //System.out.println(nearestPoints.other.size());
-        //System.out.println(nearestPoints.other);
+        System.out.println("test");
     }
 
 }
