@@ -23,6 +23,7 @@ public class CenterAllTrailers {
     {
         Integer Id = tractor.getId();
         Point origin = new Point(0.0, 0.0);
+        Point originT = Util.trailerOrigin(Id);
         Point nullPoint = new Point(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
         Point tracLoc = tractor.getLocation();
         Trailer trailer;
@@ -47,7 +48,8 @@ public class CenterAllTrailers {
         }
     
         Boolean hb = tractor.getHasBale();
-        Boolean atOrigin = tracLoc.equals(origin);
+        Boolean atOrigin = tracLoc.equals(origin) || tracLoc.equals(originT);
+        //Boolean atOrigin = tracLoc.equals(origin);
         Boolean attached = tractor.getAttachedTrailer() != null;
         Boolean atTrailer = tracLoc.equals(trailerLoc);
         Boolean atPreemptive = tracLoc.equals(preemptive.get(Id));
@@ -95,7 +97,8 @@ public class CenterAllTrailers {
         }
         else if (hb && !atOrigin && attached)
         {
-            return Command.createMoveCommand(origin);
+            //return Command.createMoveCommand(origin);
+            return Command.createMoveCommand(originT);
         }
         else if (atOrigin && attached && numBales > 0)
         {
@@ -120,7 +123,8 @@ public class CenterAllTrailers {
             BalesProtocol next = new BalesProtocol(assignedBales, -1);
             balesAssignments.put(Id, next);
 
-            return Command.createMoveCommand(origin);
+            //return Command.createMoveCommand(origin);
+            return Command.createMoveCommand(originT);
             //return new Command(CommandType.ATTACH);
         }
         // TODO: shouldn't always be detached
@@ -130,7 +134,8 @@ public class CenterAllTrailers {
         }
         else if (!atOrigin && numBales == 0 && !areBalesRem)
         {
-            return Command.createMoveCommand(origin);
+            //return Command.createMoveCommand(origin);
+            return Command.createMoveCommand(originT);
         }
         else if (!atOrigin && !atTrailer && numBales > 0 && !areBalesRem)
         {
@@ -142,7 +147,8 @@ public class CenterAllTrailers {
         }
         else if (!atOrigin && attached && !areBalesRem)
         {
-            return Command.createMoveCommand(origin);
+            //return Command.createMoveCommand(origin);
+            return Command.createMoveCommand(originT);
         }
         else if (atOrigin && attached && numBales > 0)
         {

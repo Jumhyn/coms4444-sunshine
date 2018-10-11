@@ -24,6 +24,7 @@ public class NoTrailers {
     {
         Integer Id = tractor.getId();
         Point origin = new Point(0.0, 0.0);
+        Point originT = Util.trailerOrigin(Id);
         Point nullPoint = new Point(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
         Point tracLoc = tractor.getLocation();
 
@@ -46,7 +47,8 @@ public class NoTrailers {
         }
     
         Boolean hb = tractor.getHasBale();
-        Boolean atOrigin = tracLoc.equals(origin);
+        Boolean atOrigin = tracLoc.equals(origin) || tracLoc.equals(originT);
+        //Boolean atOrigin = tracLoc.equals(origin);
         Boolean attached = tractor.getAttachedTrailer() != null;
         Boolean havePreemptive = !preemptive.get(Id).equals(nullPoint);
         Boolean areBalesRem = assignedBales.size() > 0;

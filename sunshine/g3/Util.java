@@ -375,23 +375,24 @@ public class Util {
         System.out.println("COMMAND: Tractor " + Integer.toString(Id) + " " + command);
     }
 
+    public static Point trailerOrigin(Integer Id)
+    {
+        Double xy = 1.0 / Math.sqrt(2.0);
+        Double scale = 1.0 - (1.0 / (2 * (Double.valueOf(Id) + 1.0)));
+        xy = xy * scale;
+        return new Point(xy, xy);
+    }
+
     public static void main(String[] args)
     {
-        Random rand = new Random();
-        //List<Point> baleLocations = Harvester.harvest(rand, 100);
-        List<Point> baleLocations = new ArrayList<Point>();
-        baleLocations.add(new Point(6.0, 0.0));
-        //System.out.println(baleLocations.size());
-
-        weiszfeldTrailer(baleLocations);
-        //Point p = furthestPoint(baleLocations);
-        //System.out.println(p.x + " " + p.y);
-
-        //TwoList nearestPoints = nearest_Bales(p, baleLocations);
-        //System.out.println(nearestPoints.toLoad.size());
-        //System.out.println(nearestPoints.toLoad);
-        //System.out.println(nearestPoints.other.size());
-        //System.out.println(nearestPoints.other);
+        for (int i = 0; i < 10000; i++)
+        {
+            System.out.println(i);
+            Point p = trailerOrigin(i);
+            System.out.println(p.x);
+            System.out.println(p.y);
+            System.out.println(distance(origin, p));
+        }
     }
 
 }
