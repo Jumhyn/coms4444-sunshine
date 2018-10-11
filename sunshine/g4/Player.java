@@ -1,11 +1,10 @@
 package sunshine.g4;
 
 import java.util.*;
-import java.util.List;
-import java.lang.Math;
 
 import sunshine.sim.Command;
 import sunshine.sim.Tractor;
+import sunshine.sim.Trailer;
 import sunshine.sim.CommandType;
 import sunshine.sim.Point;
 
@@ -13,79 +12,67 @@ import sunshine.sim.Point;
 public class Player implements sunshine.sim.Player {
 
     List<Point> bales;
-    List<Point> far_bales;
-    List<Point> close_bales;
+    List<Point> todo;
 
-    private Map<Integer, Integer> tractor_mode;
-    private Map<Integer, List<Point>> away_tractor;
-    private List<Integer> close_tractor;
-    private Map<Integer, Point> trailer_pos;
-    private Map<Integer, Integer> trailer_with_bales;
-
-    private int threshold = 450;
-    private Random rand;
+    public double num = 0.0;
+    private Map<Integer, Integer> tractors;
+    private Map<Point, Integer> trailers;
+    private Map<Integer, Double> time;
+    public int b = 0;
 
     public Player() {
-        rand = new Random(0);
-        close_bales = new ArrayList<Point>();
-        far_bales = new ArrayList<Point>();
-
-        close_tractor = new ArrayList<Integer>();
-        away_tractor = new HashMap<Integer, List<Point>>();
-
-        trailer_pos = new HashMap<Integer, Point>();
-        tractor_mode = new HashMap<Integer, Integer>();
-        trailer_with_bales = new HashMap<Integer, Integer>();
+        trailers = new HashMap<Point, Integer>();
+        tractors = new HashMap<Integer, Integer>();
+        time = new HashMap<Integer, Double>();
     }
 
     public double dist(double x1, double y1, double x2, double y2) {
         return Math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
     }
 
+    public double dist(Point a, Point b) {
+        return Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
+    }
 
-    public List<Point> cluster(Point p) {
-        List<Double> distances = new ArrayList<Double>();
-        List<Double> clone = new ArrayList<Double>();
-        for (int index = 0; index < far_bales.size(); index++) {
-            double distance = dist(p.x, p.y, far_bales.get(index).x, far_bales.get(index).y);
-            distances.add(distance);
-            clone.add(distance);
+    public Point NN(Point c) {
+        double min_dist = 10000;
+        Point best = null;
+        for (Point k : todo) {
+            if (dist(k, c) < min_dist) {
+                min_dist = dist(k, c);
+                best = k;
+            }
         }
-        Collections.sort(distances);
-        int K = Math.min(far_bales.size(), 10);
-        List<Double> Neighbor = distances.subList(0, K);
-        List<Point> res = new ArrayList<Point>();
-        res.add(p);
-        for (double element : Neighbor) {
-            Integer ind = clone.indexOf(element);
-            res.add(far_bales.get(ind));
-            far_bales.remove(ind);
+        return best;
+    }
+
+    private Point closestTrailer(Point loc, boolean ishome) {
+        Point closest = null;
+        double minDist = Double.POSITIVE_INFINITY;
+        for (Point trailer : trailers.keySet()) {
+            if (!ishome && dist(trailer, new Point(0, 0)) < 1) {
+                continue;
+            }
+            if (ishome && dist(trailer, new Point(0, 0)) > 1) {
+                continue;
+            }
+            double dist = dist(trailer, loc);
+            if (dist < minDist) {
+                minDist = dist;
+                closest = trailer;
+            }
         }
-        return res;
+        return closest;
     }
 
     public void init(List<Point> bales, int n, double m, double t) {
         this.bales = bales;
-        for (int i = 0; i < bales.size(); i++) {
-            if (dist(bales.get(i).x, bales.get(i).y, 0, 0) > threshold) {
-                far_bales.add(bales.get(i));
-            } else {
-                close_bales.add(bales.get(i));
-            }
-        }
-
-        int tractor_threshold = n * close_bales.size() / bales.size();
+        todo = new ArrayList<Point>();
+        Collections.sort(bales, new EuclideanDescComparator());
+        this.num = n;
         for (int i = 0; i < n; i++) {
-            if (i < tractor_threshold) {
-                close_tractor.add(i);
-                tractor_mode.put(i, 0);
-                // state 0, needs to detach
-            } else {
-                Point p = far_bales.remove(rand.nextInt(far_bales.size()));
-                away_tractor.put(i, cluster(p));
-                tractor_mode.put(i, 1);
-                // state 1, ready to go
-            }
+            tractors.put(i, 0);
+            time.put(i, 0.0);
         }
     }
 
@@ -103,127 +90,219 @@ public class Player implements sunshine.sim.Player {
 
     public Command getCommand(Tractor tractor) {
         int id = tractor.getId();
+        int s = 0;
+        for (Point t : trailers.keySet()) {
+            if (trailers.get(t) != 0) {
+                s += 1;
+            }
+        }
 
-        switch (tractor_mode.get(id)) {
-            // at 0,0, need to detatch
+        System.out.printf("trailers in the field : %d\n", s);
+
+
+        Point dest = null;
+
+        switch (tractors.get(id)) {
+            // at 0,0, ready to go
             case 0:
-                tractor_mode.put(id, 1);
-                return new Command(CommandType.DETATCH);
-
-            // at 0,0, ready to go do task
-            case 1:
-                if (close_tractor.contains(id)) {
-                    if (close_bales.size() > 0) {
-                        System.out.println(1);
-                        tractor_mode.put(id, 2);
-                        return Command.createMoveCommand(close_bales.remove(0));
-                    } else {
-                        if (far_bales.size() > 0) {
-                            System.out.println("all close bales collected");
-                            tractor_mode.put(id, 2);
-                            return Command.createMoveCommand(far_bales.remove(0));
-                        }
-                    }
-                } else {
-                    System.out.println(3);
-                    if (far_bales.size() > 0) {
-                        Point p = far_bales.remove(rand.nextInt(far_bales.size()));
-                        tractor_mode.put(id, 3);
-                        away_tractor.put(id, cluster(p));
-                        return Command.createMoveCommand(center(away_tractor.get(id)));
-                    } else {
-                        System.out.println(4);
-                        away_tractor.remove(id);
-                        close_tractor.add(id);
-                        tractor_mode.put(id, 2);
-                        return Command.createMoveCommand(close_bales.remove(0));
-                    }
-                }
-
-                // load up close bay
-            case 2:
-                tractor_mode.put(id, 8);
-                return new Command(CommandType.LOAD);
-
-            // detatch the trailer and keep it in trailer_pos
-            case 3:
-                tractor_mode.put(id, 4);
-                trailer_pos.put(id, tractor.getLocation());
-                return new Command(CommandType.DETATCH);
-
-            // try to find the next bay
-            case 4:
-                tractor_mode.put(id, 5);
-                return Command.createMoveCommand(away_tractor.get(id).remove(0));
-
-
-            // try to load up the bay
-            case 5:
-                tractor_mode.put(id, 6);
-                return new Command(CommandType.LOAD);
-
-            // return to the trailer
-            case 6:
-                tractor_mode.put(id, 7);
-                return Command.createMoveCommand(trailer_pos.get(id));
-
-            // stack up
-            case 7:
-                if (away_tractor.get(id).size() == 0) {
-                    trailer_pos.remove(id);
-                    tractor_mode.put(id, 8);
-                /*System.out.println(String.format("%f = %f",tractor.getLocation().x, tractor.getLocation().y));
-                for (Map.Entry<Integer, Point> pair : trailer_pos.entrySet()) {
-                    System.out.println(String.format("%d = %f %f",pair.getKey(), pair.getValue().x, pair.getValue().y));
-                }*/
-                    return new Command(CommandType.ATTACH);
-                } else {
-                    tractor_mode.put(id, 4);
-                    return new Command(CommandType.STACK);
-                }
-
-                // return to origin
-            case 8:
-                tractor_mode.put(id, 9);
-                return Command.createMoveCommand(new Point(0, 0));
-
-            // unload first
-            case 9:
-                if (close_tractor.contains(id)) {
-                    tractor_mode.put(id, 1);
+                if (tractor.getHasBale()) {
+                    time.put(id, time.get(id) + 10);
+                    System.out.printf("tractor %d UNLOADING at %.2f\n", id, time.get(id));
+                    b = b - 1;
                     return new Command(CommandType.UNLOAD);
                 } else {
                     if (tractor.getAttachedTrailer() == null) {
-                        tractor_mode.put(id, 11);
-                    } else {
-                        tractor_mode.put(id, 10);
+                        b = b - 1;
+                        return new Command(CommandType.UNLOAD);
                     }
-                    return new Command(CommandType.UNLOAD);
+                    if (tractor.getAttachedTrailer().getNumBales() != 0) {
+                        System.out.printf("ERROR WITH a trailer with %d\n", tractor.getAttachedTrailer().getNumBales());
+
+                    }
+                    if (bales.size() == 0) {
+                        return new Command(CommandType.UNLOAD);
+                    }
+                    Cluster myCluster = getClusters(bales, 10 - tractor.getAttachedTrailer().getNumBales());
+
+                    for (Point node : myCluster.nodes) {
+                        todo.add(node);
+                        bales.remove(node);
+                    }
+                    Collections.sort(bales, new EuclideanDescComparator());
+                    tractors.put(id, 1);
+                    time.put(id, time.get(id) + dist(tractor.getLocation(), center(myCluster.nodes)) / 4);
+                    System.out.printf("tractor %d depart completed at %.2f\n", id, time.get(id));
+                    return Command.createMoveCommand(center(myCluster.nodes));
                 }
 
-                // detach the trailer
-            case 10:
-                tractor_mode.put(id, 11);
-                trailer_with_bales.put(id, 10);
+                // detaching
+            case 1:
+                trailers.put(tractor.getLocation(), 0);
+                tractors.put(id, 2);
+                time.put(id, time.get(id) + 60);
+                System.out.printf("tractor %d detaching completed at %.2f\n", id, time.get(id));
                 return new Command(CommandType.DETATCH);
 
-            case 11:
-                if (trailer_with_bales.get(id) > 1) {
-                    tractor_mode.put(id, 9);
-                    trailer_with_bales.put(id, trailer_with_bales.get(id) - 1);
-                    return new Command(CommandType.UNSTACK);
+            // load up close bay
+            case 2:
+                if (todo.size() == 0) {
+                    if (trailers.size() > 0) {
+                        dest = closestTrailer(tractor.getLocation(), false);
+                        tractors.put(id, 5);
+                        time.put(id, time.get(id) + dist(tractor.getLocation(), dest) / 10);
+                        System.out.printf("tractor %d find trailers at %.2f, %.2f\n", id, dest.x, dest.y);
+                        System.out.printf("tractor %d move completed at %.2f\n", id, time.get(id));
+                        return Command.createMoveCommand(dest);
+                    }
+                    tractors.put(id, 9);
+                    time.put(id, time.get(id) + dist(tractor.getLocation(), new Point(0, 0)) / 10);
+                    System.out.printf("tractor %d return completed at %.2f\n", id, time.get(id));
+                    return Command.createMoveCommand(new Point(0, 0));
                 } else {
-                    tractor_mode.put(id, 12);
-                    trailer_with_bales.remove(id);
+                    dest = NN(tractor.getLocation());
+                    todo.remove(dest);
+                    b = b + 1;
+                    tractors.put(id, 3);
+                    time.put(id, time.get(id) + dist(tractor.getLocation(), dest) / 10);
+                    System.out.printf("tractor %d collect completed at %.2f\n", id, time.get(id));
+                    return Command.createMoveCommand(dest);
+                }
+
+                // detatch the trailer and keep it in trailers
+            case 3:
+                tractors.put(id, 4);
+                time.put(id, time.get(id) + 10);
+                System.out.printf("tractor %d load completed at %.2f\n", id, time.get(id));
+                return new Command(CommandType.LOAD);
+
+            // try to find the nearest trailer
+            case 4:
+                if (trailers.size() > 0) {
+                    tractors.put(id, 5);
+                    dest = closestTrailer(tractor.getLocation(), false);
+
+                    time.put(id, time.get(id) + dist(tractor.getLocation(), dest) / 10);
+                    System.out.printf("tractor %d find trailers at %.2f, %.2f\n", id, dest.x, dest.y);
+                    System.out.printf("tractor %d move completed at %.2f\n", id, time.get(id));
+                    return Command.createMoveCommand(dest);
+                } else {
+                    tractors.put(id, 0);
+                    dest = new Point(0, 0);
+                    time.put(id, time.get(id) + dist(tractor.getLocation(), dest) / 10);
+                    System.out.printf("tractor %d all trailers gone at %.2f\n", id, time.get(id));
+                    System.out.printf("tractor %d load completed at %.2f\n", id, time.get(id));
+                    return Command.createMoveCommand(dest);
+                }
+
+                // try to load up the bay
+            case 5:
+                if (trailers.containsKey(tractor.getLocation())) {
+                    if (trailers.get(tractor.getLocation()) == 10) {
+                        tractors.put(id, 6);
+                        time.put(id, time.get(id) + 60);
+                        b = b + 10;
+                        trailers.remove(tractor.getLocation());
+                        System.out.printf("tractor %d Attaching Trailer at (%.2f, %.2f) , %.2f\n", id, tractor.getLocation().x, tractor.getLocation().y, time.get(id));
+                        return new Command(CommandType.ATTACH);
+                    } else {
+                        tractors.put(id, 2);
+                        trailers.put(tractor.getLocation(), trailers.get(tractor.getLocation()) + 1);
+                        time.put(id, time.get(id) + 10);
+
+                        System.out.printf("tractor %d stacking at %.2f\n", id, time.get(id));
+                        b = b - 1;
+                        return new Command(CommandType.STACK);
+                    }
+                } else {
+                    tractors.put(id, 4);
+                    return Command.createMoveCommand(tractor.getLocation());
+                }
+
+
+                // return to the origin
+            case 6:
+                if (tractor.getAttachedTrailer() != null) {
+                    System.out.printf("trailer taken home stacking at %.2f\n", time.get(id));
+                } else {
+                    System.out.println("ERROR");
+
+                }
+                dest = new Point(id / (2 * num), id / (2 * num));
+                time.put(id, time.get(id) + dist(tractor.getLocation(), dest) / 4);
+
+                if (tractor.getHasBale()) {
+                    tractors.put(id, 7);
+                } else {
+                    tractors.put(id, 8);
+                }
+                System.out.printf("tractor %d return to (%.2f, %.2f) , %.2f\n", id, dest.x, dest.y, time.get(id));
+                return Command.createMoveCommand(dest);
+
+            // unload first
+            case 7:
+                tractors.put(id, 8);
+                if (tractor.getAttachedTrailer() == null) {
+                    tractors.put(id, 9);
+                }
+
+                time.put(id, time.get(id) + 10);
+                b = b - 1;
+                System.out.printf("unload at %.2f\n", time.get(id));
+                return new Command(CommandType.UNLOAD);
+
+            // detach
+            case 8:
+                tractors.put(id, 9);
+                b = b - 10;
+                trailers.put(tractor.getLocation(), 10);
+                time.put(id, time.get(id) + 60);
+                System.out.printf("detach at %.2f\n", time.get(id));
+                return new Command(CommandType.DETATCH);
+
+            // unstack
+            case 9:
+                dest = closestTrailer(tractor.getLocation(), true);
+                if (trailers.get(dest) == 0) {
+                    if (bales.size() > num * 10) {
+                        tractors.put(id, 0);
+                        time.put(id, time.get(id) + 60);
+                        System.out.printf("Attaching Trailer at (%.2f, %.2f) , %.2f\n", tractor.getLocation().x, tractor.getLocation().y, time.get(id));
+                        return new Command(CommandType.ATTACH);
+                    } else {
+                        if (bales.size() == 0) {
+                            return new Command(CommandType.UNLOAD);
+                        }
+                        dest = bales.remove(0);
+                        tractors.put(id, 10);
+
+                        time.put(id, time.get(id) + dist(tractor.getLocation(), dest) / 10);
+                        System.out.printf("moving at %.2f\n", time.get(id));
+                        return Command.createMoveCommand(dest);
+                    }
+                } else {
+                    trailers.put(dest, trailers.get(dest) - 1);
+                    tractors.put(id, 7);
+                    time.put(id, time.get(id) + 10);
+                    b = b + 1;
+                    System.out.printf("unstack at %.2f\n", time.get(id));
                     return new Command(CommandType.UNSTACK);
                 }
 
+            case 10:
+                b = b + 1;
+                tractors.put(id, 11);
+                return new Command(CommandType.LOAD);
+            case 11:
+                tractors.put(id, 12);
+                dest = new Point(0, 0);
+                return Command.createMoveCommand(dest);
             case 12:
-                tractor_mode.put(id, 1);
-                return new Command(CommandType.ATTACH);
+                tractors.put(id, 9);
+                b = b - 1;
+                return new Command(CommandType.UNLOAD);
 
         }
-        return Command.createMoveCommand(new Point(0, 0));
+        return new Command(CommandType.UNLOAD);
     }
 
     /**
@@ -233,7 +312,7 @@ public class Player implements sunshine.sim.Player {
     private class EuclideanDescComparator implements Comparator<Point> {
         @Override
         public int compare(Point p1, Point p2) {
-            return (int) (((p1.x * p1.x + p1.y * p1.y) - (p2.x * p2.x + p2.y * p2.y)) * 1000);
+            return (int) (((p1.x * p1.x + p1.y * p1.y) - (p2.x * p2.x + p2.y * p2.y)) * -10000);
         }
     }
 
@@ -248,7 +327,7 @@ public class Player implements sunshine.sim.Player {
 
         @Override
         public int compare(Point p1, Point p2) {
-            return (int) ((((p1.x - p.x) * (p1.x - p.x) + (p1.y - p.y) * (p1.y - p.y)) - ((p2.x - p.x) * (p2.x - p.x) + (p2.y - p.y) * (p2.y - p.y))) * -1000);
+            return (int) ((((p1.x - p.x) * (p1.x - p.x) + (p1.y - p.y) * (p1.y - p.y)) - ((p2.x - p.x) * (p2.x - p.x) + (p2.y - p.y) * (p2.y - p.y))) * 10000);
         }
     }
 
@@ -258,20 +337,15 @@ public class Player implements sunshine.sim.Player {
 
     //return the next cluster list and center
     private Cluster getClusters(List<Point> inputBales, int k) {  // k bales per cluster
-        List<Point> bales = new ArrayList<>(inputBales);
         List<Point> result = new ArrayList<>();
-        if (bales.isEmpty()) return null;
-        Collections.sort(bales, new EuclideanDescComparator()); // change to max() for optimization
-        Point pivot = bales.get(0);
-        Collections.sort(bales, new RelativeEuclideanAscComparator(pivot));
-        for (int i = 1; i < k && i < bales.size(); i++){
-            result.add(bales.get(i));
+        if (inputBales.isEmpty()) return null;
+        Point pivot = inputBales.get(0);
+        result.add(pivot);
+        Collections.sort(inputBales, new RelativeEuclideanAscComparator(pivot));
+        for (int i = 1; i < k + 1 && i < inputBales.size(); i++) {
+            result.add(inputBales.get(i));
         }
         return new Cluster(result, null);
     }
 
-    // Determine what the threshold should be.
-    private int getThreshold() {
-        return threshold;
-    }
 }
