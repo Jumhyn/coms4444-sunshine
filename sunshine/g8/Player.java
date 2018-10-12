@@ -32,7 +32,7 @@ public class Player implements sunshine.sim.Player
 	private List<Point> centroids = new ArrayList<Point>();
 
 	// Map the TractorID (matched with trailer it is matched to...to Location of Trailer
-	private HashMap<Integer, Point> trailer_map = new HashMap<Integer, Point>();
+	private HashMap<Integer, Point> trailer_map = new HashMap<Integer, Point>(); 
 	private HashMap<Integer, Integer> trailer_num = new HashMap<Integer, Integer>();
 
 	private HashMap<Integer, List<Point>> taskList = new HashMap<Integer, List<Point>>();
