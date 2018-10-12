@@ -219,6 +219,20 @@ public class Player implements sunshine.sim.Player
 		return pos;
 	}
 
+	//do math to get point within 1 meter
+	private Point optimalPoint(Point p){
+		Point res = new Point(0,0); 
+		double mag = Math.sqrt((p.x * p.x) + (p.y * p.y));
+		if(mag == 0){
+			System.out.println("NOOOO"); 
+		}
+		res.x = p.x - (.90 *(p.x/mag)); 
+		res.y = p.y - (.90 *(p.y/mag)); 
+
+		return res; 
+
+	}
+
 	public Command getCommand(Tractor tractor)
 	{
 		/*for(int i=0;i<n_tractors;i++) {
@@ -274,7 +288,9 @@ public class Player implements sunshine.sim.Player
 						//TODO
 						//do a function here, that optimizes p 
 						//closest to barn and one m away from bale
-						return Command.createMoveCommand(p);
+			
+						Point o = optimalPoint(p); 
+						return Command.createMoveCommand(o);
 					}
 					else { // tractor has no tasks, just stay at barn, no op
 						return new Command(CommandType.UNSTACK);
@@ -329,12 +345,14 @@ public class Player implements sunshine.sim.Player
 						//if forklift has bale
 						if (tractor.getHasBale()) {
 							//if tractor is by the trailer 
+							//TODO: or is in range 
 							if (tractor.getLocation().equals(trail_loc)) {
 								//updating trailer bales hashmap
 								trailer_num.put(tractor.getId(),trailer_num.get(tractor.getId())+1);
 								return new Command(CommandType.STACK);
 							}
 							else { //move to trailer
+			 
 								return Command.createMoveCommand(trail_loc);
 							}
 						} 
@@ -351,6 +369,7 @@ public class Player implements sunshine.sim.Player
 								return new Command(CommandType.LOAD);
 							}
 							else {
+							
 								return Command.createMoveCommand(p);
 							}
 						}
@@ -372,6 +391,7 @@ public class Player implements sunshine.sim.Player
 				{ //tasklist done
 					//move back to where trailer is 
 					if (!tractor.getLocation().equals(trail_loc)) {
+						//Point o = optimalPoint(trail_loc); 
 						return Command.createMoveCommand(trail_loc);
 					} else { //at trailer
 						return new Command(CommandType.ATTACH);
