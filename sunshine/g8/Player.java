@@ -39,9 +39,6 @@ public class Player implements sunshine.sim.Player
 
 	private boolean is_not_removed = true;
 
-	private HashMap<Integer, Boolean> done = new HashMap<Integer, Boolean>();
-
-
 
 	// Get number of tractors, change stategy as needed
 	private int n_tractors = 0;
@@ -136,7 +133,6 @@ public class Player implements sunshine.sim.Player
 			trailer_num.put(i,0);
 
 			taskList.put(i, new ArrayList<Point>());
-			done.put(i,false);
 		}
 
 
@@ -232,7 +228,7 @@ public class Player implements sunshine.sim.Player
 		if (taskList.get(tractor.getId()).size() == 0 && tractor.getLocation().equals(BARN)) { //empty list right now
 			//pick farthest point
 			if (tractor_bales.size() == 0) {
-				done.put(tractor.getId(), true);
+				System.out.println("done");
 			}
 			else if (tractor_bales.size() <= 11) {
 				List<Point> tasks = new ArrayList<Point>();
@@ -252,247 +248,79 @@ public class Player implements sunshine.sim.Player
 				taskList.put(tractor.getId(),tasks);
 			}
 		}
-		// if empty, have tractor return to base now!
-		// Extra Consideration. If last tractor has a trailer attached...
-		// We need to see if it is empty
-		// if empty, we must compute if it is faster to detach and run to barn or just go now
-		//if(trailer_bales.isEmpty() && tractor_bales.isEmpty())
-		//{
-		//	return Command.createMoveCommand(BARN);
-		//}
 		
-		// Andrew will be testing some stuff with just 1 tractor
-		if(n_tractors == 1)
+		if (tractor.getLocation().equals(BARN)) 
 		{
-			return one_trailer_greedy(tractor);
-
-
-			// Option 2: Use Trailer for everything
-			// If at origin
-			/*
-			if (tractor.getLocation().equals(new Point(0.0, 0.0)))
-			{
-				if(tractor.getAttachedTrailer() != null)
-				{
-					// It is time to empty everything
-					if(tractor.getHasBale())
-					{
-						haystack = tractor.getAttachedTrailer().getNumBales();
-						return new Command(CommandType.DETATCH);
-					}
-					// Everything is empty, Go now!
-					else
-					{
-						Point p = tractor_bales.remove(tractor_bales.size()-1);
-						return Command.createMoveCommand(p);
-					}
-				}
-				// It is detached! Empty EVERYTHING!
-				else
-				{
-					if(tractor.getHasBale())
-					{
+			if (tractor.getHasBale()) {
 						return new Command(CommandType.UNLOAD);
 					}
-					// BEWARE OF EMPTY TRAILER!
-					else
-					{
-						if(haystack > 0)
-						{
-							--haystack;
-							return new Command(CommandType.UNSTACK);
-						}
-						else
-						{
-							return new Command(CommandType.ATTACH);
-						}
-					}
-				}
-
-				// If not empty, GO TO LOCATION
-			}
-			// Farming for Bale!
-			else
+			else if (tractor.getAttachedTrailer() != null) //trailer
 			{
-				// 2- unattach trailer
-				// 3- Stack 10 times, 1 more for hay
-				// 4- Attach
-				// 5- go to barn
-				// BEWARE OF LIST OF POINTS FOR TRAILER BEING EMPTY!
-
-				if(tractor.getAttachedTrailer() != null)
-				{
-					// Just in case the bails for trailer are done! Go Back NOW!
-
-					//if(trailer_bales == null || trailer_bales.isEmpty())
-					//{
-					//	return Command.createMoveCommand(new Point(0.0, 0.0));
-					//}
-
-
-					// Do you have 11th bale? If so, time to go?
-					if(tractor.getHasBale())
-					{
-						return Command.createMoveCommand(new Point(0.0, 0.0));
+				if(tractor.getAttachedTrailer().getNumBales() == 0) {
+					/*if (tractor.getHasBale()) {
+						return new Command(CommandType.UNLOAD);
+					}*/
+					if ((taskList.get(tractor.getId()).size()) > 0) {
+						Point p = taskList.get(tractor.getId()).get(0);
+						return Command.createMoveCommand(p);
 					}
-					// Everything is empty, Go now!
-					else
-					{
-						this.haystack = tractor.getAttachedTrailer().getNumBales();
-						return new Command(CommandType.DETATCH);
-					}
-				}
-				else
-				{
-					// It is detached, 
-					// In this case, the trailer is full! Move out!
-					if(haystack == 10)
-					{
-						return new Command(CommandType.ATTACH);
-					}
-					// Keep farming!
-					else
-					{
-						if(tractor.getHasBale())
-						{
-							++haystack;
-							return new Command(CommandType.STACK);
-						}
-						else
-						{
-							// If you are at Trailer...Go get Bale!
-
-							// If you are NOT at Trailer...LOAD IT!
-							Point p = tractor_bales.remove(tractor_bales.size()-1);
-							return Command.createMoveCommand(p);
-						}
-					}
-				}
-			}
-			 */
-
-			// Option 3: Use Trailer ONLY ON QUADRAN 1 (Closest to Barn)
-
-			// Option 4: Use the Trailer ONLY ON QUADTRANT 5 (Furthest from Barn)
-		}
-		// Leaving room open for different tractor strategy
-		else if(n_tractors >= 1)
-		{
-			if (tractor.getLocation().equals(BARN)) 
-			{
-				if (tractor.getHasBale()) {
-							return new Command(CommandType.UNLOAD);
-						}
-				else if (tractor.getAttachedTrailer() != null) //trailer
-				{
-					if(tractor.getAttachedTrailer().getNumBales() == 0) {
-						/*if (tractor.getHasBale()) {
-							return new Command(CommandType.UNLOAD);
-						}*/
-						if ((taskList.get(tractor.getId()).size()) > 0) {
-							Point p = taskList.get(tractor.getId()).get(0);
-							return Command.createMoveCommand(p);
-						}
-						else {
-							return new Command(CommandType.UNSTACK);
-						}
-					} 
-					else { //has bales
-						return new Command(CommandType.DETATCH);
-					}
-				}
-				else //no trailer
-				{
-					if(trailer_num.get(tractor.getId()) != 0) { //detached trailer has bales
-						if (tractor.getHasBale()) {
-							return new Command(CommandType.UNLOAD);
-						} else {
-							trailer_num.put(tractor.getId(),trailer_num.get(tractor.getId())-1);
-							return new Command(CommandType.UNSTACK);
-						}
-					} else { //detached trailer has 0 bales
-						if (tractor.getHasBale()) {
-							return new Command(CommandType.UNLOAD);
-						}
-						else {
-							return new Command(CommandType.ATTACH);
-						}
-					}
-				}
-			}
-			// There is no bale!
-			else // not at barn
-			{
-				if (tractor.getAttachedTrailer() != null) //trailer attached, only attach with bale in forklift
-				{
-					if (tractor.getAttachedTrailer().getNumBales() == 0 && taskList.get(tractor.getId()).size() != 0) { //nothing in trailer
-						trailer_map.put(tractor.getId(),tractor.getLocation());
-						return new Command(CommandType.DETATCH);
-					}
-					else { //something in trailer, ready to move (should be 10)
-						Point p = new Point(0.0,0.0);
-						trailer_map.put(tractor.getId(),p);
-						return Command.createMoveCommand(BARN);
+					else {
+						return new Command(CommandType.UNSTACK);
 					}
 				} 
-				else // no trailer attached
-				{
-					Point trail_loc = trailer_map.get(tractor.getId());
-					if (taskList.get(tractor.getId()).size() > 0) {
-						if (trailer_num.get(tractor.getId()) < 10) {
-							if (tractor.getHasBale()) {
-								if (tractor.getLocation().equals(trail_loc)) {
-									trailer_num.put(tractor.getId(),trailer_num.get(tractor.getId())+1);
-									return new Command(CommandType.STACK);
-								}
-								else { //move to trailer
-									return Command.createMoveCommand(trail_loc);
-								}
-							} 
-							else { // no bale, need to go to next bale to 
-								Point p = taskList.get(tractor.getId()).get(0);
-								//Point p = tractor_bales.get(tractor_bales.size()-1);
-								if (tractor.getLocation().equals(p)) {
-									taskList.get(tractor.getId()).remove(0);
-									//tractor_bales.remove(tractor_bales.size()-1);
-									return new Command(CommandType.LOAD);
-								}
-								else {
-									return Command.createMoveCommand(p);
-								}
-							}
-						} 
-						else 
-						{ //trailer is full, tractor must load
-							Point p = taskList.get(tractor.getId()).get(0);
-							if (tractor.getLocation().equals(p)) {
-								taskList.get(tractor.getId()).remove(0);
-								//tractor_bales.remove(tractor_bales.size()-1);
-								return new Command(CommandType.LOAD);
-							}
-							else {
-								return Command.createMoveCommand(p);
-							}
-						}
-					} 
-					else 
-					{ //tasklist done
-						if (!tractor.getLocation().equals(trail_loc)) {
-							return Command.createMoveCommand(trail_loc);
-						} else { //at trailer
-							return new Command(CommandType.ATTACH);
-						}
-						/*if (!tractor.getLocation().equals(trail_loc)) {
-							return Command.createMoveCommand(trail_loc);
-						}
-						else if (tractor.getHasBale()) {
+				else { //has bales
+					return new Command(CommandType.DETATCH);
+				}
+			}
+			else //no trailer
+			{
+				if(trailer_num.get(tractor.getId()) != 0) { //detached trailer has bales
+					if (tractor.getHasBale()) {
+						return new Command(CommandType.UNLOAD);
+					} else {
+						trailer_num.put(tractor.getId(),trailer_num.get(tractor.getId())-1);
+						return new Command(CommandType.UNSTACK);
+					}
+				} else { //detached trailer has 0 bales
+					if (tractor.getHasBale()) {
+						return new Command(CommandType.UNLOAD);
+					}
+					else {
+						return new Command(CommandType.ATTACH);
+					}
+				}
+			}
+		}
+		// There is no bale!
+		else // not at barn
+		{
+			if (tractor.getAttachedTrailer() != null) //trailer attached, only attach with bale in forklift
+			{
+				if (tractor.getAttachedTrailer().getNumBales() == 0 && taskList.get(tractor.getId()).size() != 0) { //nothing in trailer
+					trailer_map.put(tractor.getId(),tractor.getLocation());
+					return new Command(CommandType.DETATCH);
+				}
+				else { //something in trailer, ready to move (should be 10)
+					Point p = new Point(0.0,0.0);
+					trailer_map.put(tractor.getId(),p);
+					return Command.createMoveCommand(BARN);
+				}
+			} 
+			else // no trailer attached
+			{
+				Point trail_loc = trailer_map.get(tractor.getId());
+				if (taskList.get(tractor.getId()).size() > 0) {
+					if (trailer_num.get(tractor.getId()) < 10) {
+						if (tractor.getHasBale()) {
 							if (tractor.getLocation().equals(trail_loc)) {
-								return new Command(CommandType.ATTACH);
+								trailer_num.put(tractor.getId(),trailer_num.get(tractor.getId())+1);
+								return new Command(CommandType.STACK);
 							}
-							else {
+							else { //move to trailer
 								return Command.createMoveCommand(trail_loc);
 							}
-						} else {
+						} 
+						else { // no bale, need to go to next bale to 
 							Point p = taskList.get(tractor.getId()).get(0);
 							//Point p = tractor_bales.get(tractor_bales.size()-1);
 							if (tractor.getLocation().equals(p)) {
@@ -503,45 +331,28 @@ public class Player implements sunshine.sim.Player
 							else {
 								return Command.createMoveCommand(p);
 							}
-						}*/
-					}
-				}
-			}
-		}
-		else
-		{
-			// INVALID, Just random code...
-			if (tractor.getHasBale()) 
-			{
-				// Unload the bale at the barn
-				if (tractor.getLocation().equals(BARN)) 
-				{
-					return new Command(CommandType.UNLOAD);
-				}
-				// Move back to the barn!
-				else 
-				{
-					return Command.createMoveCommand(BARN);
-				}
-			}
-			// There is no bale!
-			else 
-			{
-				if (tractor.getLocation().equals(BARN)) 
-				{
-					if (tractor.getAttachedTrailer() == null) 
-					{
-						Point p = tractor_bales.remove(tractor_bales.size()-1);
-						return Command.createMoveCommand(p);
+						}
 					} 
 					else 
-					{
-						return new Command(CommandType.DETATCH);
+					{ //trailer is full, tractor must load
+						Point p = taskList.get(tractor.getId()).get(0);
+						if (tractor.getLocation().equals(p)) {
+							taskList.get(tractor.getId()).remove(0);
+							//tractor_bales.remove(tractor_bales.size()-1);
+							return new Command(CommandType.LOAD);
+						}
+						else {
+							return Command.createMoveCommand(p);
+						}
 					}
-				}
+				} 
 				else 
-				{
-					return new Command(CommandType.LOAD);
+				{ //tasklist done
+					if (!tractor.getLocation().equals(trail_loc)) {
+						return Command.createMoveCommand(trail_loc);
+					} else { //at trailer
+						return new Command(CommandType.ATTACH);
+					}
 				}
 			}
 		}
