@@ -235,6 +235,7 @@ public class Player implements sunshine.sim.Player
 				for(int i=0;i<tractor_bales.size();i++) {
 					tasks.add(tractor_bales.remove(i));
 				}
+				Collections.sort(tasks, pointComparator);
 				taskList.put(tractor.getId(),tasks);
 			}
 			else {
@@ -245,45 +246,56 @@ public class Player implements sunshine.sim.Player
 					tractor_bales.remove(tractor_bales.indexOf(tasks.get(i)));
 				}
 				tasks.add(p);
+				//sort tasks by distance to BARN,
+				Collections.sort(tasks, pointComparator);
+
+
 				taskList.put(tractor.getId(),tasks);
 			}
 		}
 		
+		//when tractor is in barn
 		if (tractor.getLocation().equals(BARN)) 
 		{
+			//if at barn and has bale, always unload
 			if (tractor.getHasBale()) {
 						return new Command(CommandType.UNLOAD);
 					}
 			else if (tractor.getAttachedTrailer() != null) //trailer
 			{
+				//if trailer has nothing
 				if(tractor.getAttachedTrailer().getNumBales() == 0) {
 					/*if (tractor.getHasBale()) {
 						return new Command(CommandType.UNLOAD);
 					}*/
-					if ((taskList.get(tractor.getId()).size()) > 0) {
+					//either move if 
+					if ((taskList.get(tractor.getId()).size()) > 0) { //tractor has tasks
 						Point p = taskList.get(tractor.getId()).get(0);
+						//TODO
+						//do a function here, that optimizes p 
+						//closest to barn and one m away from bale
 						return Command.createMoveCommand(p);
 					}
-					else {
+					else { // tractor has no tasks, just stay at barn, no op
 						return new Command(CommandType.UNSTACK);
 					}
 				} 
-				else { //has bales
+				else { //trailer is attached, trailer has bales
 					return new Command(CommandType.DETATCH);
 				}
 			}
 			else //no trailer
 			{
 				if(trailer_num.get(tractor.getId()) != 0) { //detached trailer has bales
-					if (tractor.getHasBale()) {
+					if (tractor.getHasBale()) { //porbabtl wont
 						return new Command(CommandType.UNLOAD);
 					} else {
-						trailer_num.put(tractor.getId(),trailer_num.get(tractor.getId())-1);
+						trailer_num.put(tractor.getId(),trailer_num.get(tractor.getId())-1); //update hashmap
 						return new Command(CommandType.UNSTACK);
 					}
 				} else { //detached trailer has 0 bales
 					if (tractor.getHasBale()) {
-						return new Command(CommandType.UNLOAD);
+						return new Command(CommandType.UNLOAD);//no op
 					}
 					else {
 						return new Command(CommandType.ATTACH);
@@ -296,11 +308,12 @@ public class Player implements sunshine.sim.Player
 		{
 			if (tractor.getAttachedTrailer() != null) //trailer attached, only attach with bale in forklift
 			{
+				//nothing in trailer have things to do 
 				if (tractor.getAttachedTrailer().getNumBales() == 0 && taskList.get(tractor.getId()).size() != 0) { //nothing in trailer
 					trailer_map.put(tractor.getId(),tractor.getLocation());
 					return new Command(CommandType.DETATCH);
 				}
-				else { //something in trailer, ready to move (should be 10)
+				else { //something in trailer, ready to move (should be 10)  //finished all tasks, ready to move to barn
 					Point p = new Point(0.0,0.0);
 					trailer_map.put(tractor.getId(),p);
 					return Command.createMoveCommand(BARN);
@@ -308,11 +321,16 @@ public class Player implements sunshine.sim.Player
 			} 
 			else // no trailer attached
 			{
-				Point trail_loc = trailer_map.get(tractor.getId());
-				if (taskList.get(tractor.getId()).size() > 0) {
+				Point trail_loc = trailer_map.get(tractor.getId()); //location of the trailer
+				
+				if (taskList.get(tractor.getId()).size() > 0) { //something to do in the tasklist
+					//if trailer has less than 10 bales on it 
 					if (trailer_num.get(tractor.getId()) < 10) {
+						//if forklift has bale
 						if (tractor.getHasBale()) {
+							//if tractor is by the trailer 
 							if (tractor.getLocation().equals(trail_loc)) {
+								//updating trailer bales hashmap
 								trailer_num.put(tractor.getId(),trailer_num.get(tractor.getId())+1);
 								return new Command(CommandType.STACK);
 							}
@@ -320,9 +338,13 @@ public class Player implements sunshine.sim.Player
 								return Command.createMoveCommand(trail_loc);
 							}
 						} 
+						//forklift doesn't have bale, go to next in task list
 						else { // no bale, need to go to next bale to 
 							Point p = taskList.get(tractor.getId()).get(0);
 							//Point p = tractor_bales.get(tractor_bales.size()-1);
+							//if you happen to already be there, load 
+							// TODO
+							//OR IF LOCATION IS WITHIN ONE METER
 							if (tractor.getLocation().equals(p)) {
 								taskList.get(tractor.getId()).remove(0);
 								//tractor_bales.remove(tractor_bales.size()-1);
@@ -348,6 +370,7 @@ public class Player implements sunshine.sim.Player
 				} 
 				else 
 				{ //tasklist done
+					//move back to where trailer is 
 					if (!tractor.getLocation().equals(trail_loc)) {
 						return Command.createMoveCommand(trail_loc);
 					} else { //at trailer
