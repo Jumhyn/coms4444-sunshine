@@ -29,7 +29,6 @@ public class Player implements sunshine.sim.Player {
     List<Integer> away_tractor = new ArrayList<Integer>();
     Map<Integer, Integer> tractor_mode = new HashMap<Integer, Integer>();
     Point dropPoint;
-    
 
     // Class members for bale sorting and separating into segments
     private Map<Point, Double> balePointsSorted;
@@ -99,7 +98,7 @@ public class Player implements sunshine.sim.Player {
         for (int i=0; i<n;i++){
             away_tractor.add(i);    
             tractor_mode.put(i, 1);
-                // state 1, ready to go
+            // state 1, ready to go
         }
         int numFarBales = n*11; // so that each trailer can be mapped to a segment of 10
 
@@ -282,43 +281,35 @@ public class Player implements sunshine.sim.Player {
         // }
         // System.out.println("check numFarBales: " + (count + eleventhBale.size()));
         
+        System.out.println("segment size:" + segments.size());
+
+        for (int i = 0; i < segments.size(); i++) {
+            ArrayList<Point> seg = segments.get(i);
+            System.out.println("segment no: " + i);
+            for (int j = 0; j < seg.size(); j++) {
+                System.out.println("points in segment: " + seg.get(j).x + ", " + seg.get(j).y);    
+            }
+            
+        }
 
     }
 
 
     public Command getCommand(Tractor tractor){
 
-        // System.out.println("how many bales left: " + bales.size());
-        // System.out.println("how many far bales left: " + farBales.size());
-        // System.out.println("how many close bales left: " + closeBales.size());
-        // System.out.println("how many far tractors: " + away_tractor.size());
-        // System.out.println("how many close tractors: " + close_tractor.size());
-
         int id = tractor.getId();
-
-        // System.out.println("all points:");
-        // for (Point p : bales) {
-        //     System.out.print(p.x + ", ");
-        //     System.out.println(p.y);    
-        // }
-
-        // System.out.println("trailer drop points:");
-        // for (Point p : drop) {
-        //     System.out.print(p.x + ", ");
-        //     System.out.println(p.y);    
-        // }
-        
         int randNum = 0;
         Point p;
+        int segmentId = 0;
         
         switch(tractor_mode.get(id))
         {     
             // at 0,0, ready to go do task
             case 1:
-            if (close_tractor.contains(id)){
+            if (close_tractor.contains(id)) {
                 tractor_mode.put(id,7);
                 if (closeBales.size() > 0) {
-                    randNum = rand.nextInt(closeBales.size());
+                    randNum = closeBales.size() - 1;
                     p = closeBales.remove(randNum);
                     bales.remove(randNum);
                     return Command.createMoveCommand(p);
@@ -334,7 +325,7 @@ public class Player implements sunshine.sim.Player {
                 }
 
             }
-            else{ 
+            else { 
                 tractor_mode.put(id,2);
                 trailerBales.put(id,0);  // this point has 0 bales initially
                 dropPoint = eleventhBale.get(id);
@@ -348,7 +339,18 @@ public class Player implements sunshine.sim.Player {
             //go to location of bale in far area
             case 3:
             tractor_mode.put(id,7);
-            randNum = rand.nextInt(segments.get(id).size());
+            randNum = rand.nextInt(segments.get(segmentId).size());
+
+
+            // if (segments.get(segmentId).size() > 0) {
+            //     randNum = segments.get(segmentId).size() - 1;
+            //     System.out.println(randNum);
+            // }
+            // else {
+            //     segmentId++;
+            //     randNum = segments.get(segmentId).size() - 1;    
+            // }
+
             p = segments.get(id).remove(randNum);
             bales.remove(randNum);
             farBalePoints.remove(randNum);
