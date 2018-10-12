@@ -126,13 +126,16 @@ public class CenterAllTrailers {
         }
         else if (!hb && atOrigin && numBales > 0)
         {
+            //BalesProtocol next = new BalesProtocol(assignedBales, -1);
+            //balesAssignments.put(Id, next);
+
             return new Command(CommandType.UNSTACK);
         }
         else if (!hb && atOrigin && !attached && numBales == 0 && assignedBales.size() == 0) 
         {
             //System.out.println("COMMAND: TRACTOR " + Integer.toString(Id) + " ATTACHING_NEEDLESSLY?");
-            BalesProtocol next = new BalesProtocol(assignedBales, -1);
-            balesAssignments.put(Id, next);
+            //BalesProtocol next = new BalesProtocol(assignedBales, -1);
+            //balesAssignments.put(Id, next);
 
             //return Command.createMoveCommand(origin);
             return Command.createMoveCommand(originT);
@@ -155,6 +158,10 @@ public class CenterAllTrailers {
         }
         else if (!atOrigin && !areBalesRem && !attached && atTrailer)
         {
+            if (numBales < 10)
+            {
+                Util.printCommand(Id, "GOING_HOME_FEWER_THAN_10");
+            }
             return new Command(CommandType.ATTACH);
         }
         else if (!atOrigin && attached && !areBalesRem)

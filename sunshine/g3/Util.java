@@ -407,7 +407,8 @@ public class Util {
         else
         {
             Double theta = Math.atan2(dest.y - source.y, dest.x - source.x);
-            Double scale = 0.999999;
+            Double scale = 0.9;
+            //Double scale = 0.8;
             //Double scale = 0.0;
             Double x_new = step(scale, source.x, dist, theta, 0);
             Double y_new = step(scale, source.y, dist, theta, 1);
@@ -422,17 +423,19 @@ public class Util {
 
             Point sc = new Point(x_new, y_new);
             Point nearest = nearestPoint(sc, pointList);
-
-            while (distance(sc, nearest) < distance(sc, dest))
+            System.out.println("NEAREST_(" + Double.toString(nearest.x) + "," + Double.toString(nearest.y) + ")");
+            System.out.println("DESIRED_(" + Double.toString(dest.x) + "," + Double.toString(dest.y) + ")");
+            //while (distance(sc, nearest) < distance(sc, dest))
+            while (!nearest.equals(dest))
             {
-                System.out.println("step step step");
-                System.out.println("SHORTCUT:\t" + "(" + Double.toString(sc.x) + "," + Double.toString(sc.y) + ")");
-                System.out.println("DESIRED:\t" + "(" + Double.toString(dest.x) + "," + Double.toString(dest.y) + ")");
-                System.out.println("DESIRED DISTANCE:\t" + Double.toString(distance(sc, dest)));
-                System.out.println("NEAREST:\t" + "(" + Double.toString(nearest.x) + "," + Double.toString(nearest.y) + ")");
-                System.out.println("NEAREST DISTANCE:\t" + Double.toString(distance(sc, nearest)));
+                //System.out.println("step step step");
+                //System.out.println("SHORTCUT:\t" + "(" + Double.toString(sc.x) + "," + Double.toString(sc.y) + ")");
+                //System.out.println("DESIRED:\t" + "(" + Double.toString(dest.x) + "," + Double.toString(dest.y) + ")");
+                //System.out.println("DESIRED DISTANCE:\t" + Double.toString(distance(sc, dest)));
+                //System.out.println("NEAREST:\t" + "(" + Double.toString(nearest.x) + "," + Double.toString(nearest.y) + ")");
+                //System.out.println("NEAREST DISTANCE:\t" + Double.toString(distance(sc, nearest)));
 
-                scale = scale - 0.001;
+                scale = scale - 0.01;
                 x_new = step(scale, source.x, dist, theta, 0);
                 y_new = step(scale, source.y, dist, theta, 1);
 
