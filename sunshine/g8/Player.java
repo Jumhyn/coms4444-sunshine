@@ -108,6 +108,12 @@ public class Player implements sunshine.sim.Player
 			this.trailer_bales = new ArrayList<Point>();
 			return;
 		}
+		else if(split == 0)
+		{
+			this.tractor_bales = new ArrayList<Point>();
+			this.trailer_bales = bales;
+			return;
+		}
 		// split determines the fraction going to tractor.
 		// e.g 1/2 means 1/2 tractor 1/2 trailer
 		// e.g 1/3 means 1/3 tractor and 2/3 trailer
@@ -126,16 +132,14 @@ public class Player implements sunshine.sim.Player
 		// 2- 1/2 closest to trailer
 		// For now, all of them will go to trailer...
 		split_trailer_tractor_batch(bales, 1);
-
-
-		for (int i=0;i<n;i++) {
+		
+		for (int i=0;i<n;i++) 
+		{
 			trailer_map.put(i,new Point(0.0,0.0));
 			trailer_num.put(i,0);
 
 			taskList.put(i, new ArrayList<Point>());
 		}
-
-
 		this.n_tractors = n;
 		this.dimensions = m;
 	}
@@ -177,11 +181,14 @@ public class Player implements sunshine.sim.Player
 			}
 		}
 	}
-	private int getMaxIdx(List<Double> ptlist) {
+	private int getMaxIdx(List<Double> ptlist) 
+	{
 		double max = 0;
 		int maxindex = 0;
-		for (int i=0;i<ptlist.size();i++) {
-			if (ptlist.get(i)>max) {
+		for (int i=0;i<ptlist.size();i++) 
+		{
+			if (ptlist.get(i)>max) 
+			{
 				max = ptlist.get(i);
 				maxindex = i;
 			}
@@ -190,25 +197,30 @@ public class Player implements sunshine.sim.Player
 
 	}
 
-	private List<Point> closestTen(Point x, List<Point> currBales) {
+	private List<Point> closestTen(Point x, List<Point> currBales) 
+	{
 		List<Point> pos = new ArrayList<Point>();
 		List<Double> dist = new ArrayList<Double>();
 
 		int k=0;
 		double max = 0;
 
-		for (Point p: currBales) {
-			if(k<10) {
+		for (Point p: currBales) 
+		{
+			if(k < 10) 
+			{
 				double temp = distance(x,p);
 				pos.add(p);
 				dist.add(temp);
 				k++;
 			}
-			else {
+			else 
+			{
 				double temp = distance(x,p);
 				int i = getMaxIdx(dist);
 				max = dist.get(i);
-				if (max > temp) {
+				if (max > temp) 
+				{
 					dist.remove(i);
 					pos.remove(i);
 					dist.add(temp);
@@ -220,17 +232,13 @@ public class Player implements sunshine.sim.Player
 	}
 
 	//do math to get point within 1 meter
-	private Point optimalPoint(Point p){
+	private Point optimalPoint(Point p)
+	{
 		Point res = new Point(0,0); 
 		double mag = Math.sqrt((p.x * p.x) + (p.y * p.y));
-		if(mag == 0){
-			System.out.println("NOOOO"); 
-		}
 		res.x = p.x - (.90 *(p.x/mag)); 
 		res.y = p.y - (.90 *(p.y/mag)); 
-
 		return res; 
-
 	}
 
 	public Command getCommand(Tractor tractor)
@@ -239,161 +247,206 @@ public class Player implements sunshine.sim.Player
 			System.out.println(i+" "+done.get(i));
 		}*/
 		//System.out.println(tractor_bales.size());
-		if (taskList.get(tractor.getId()).size() == 0 && tractor.getLocation().equals(BARN)) { //empty list right now
+		if (taskList.get(tractor.getId()).size() == 0 && tractor.getLocation().equals(BARN))
+		{ 
+			//empty list right now
 			//pick farthest point
-			if (tractor_bales.size() == 0) {
+			if (tractor_bales.size() == 0)
+			{
 				System.out.println("done");
 			}
-			else if (tractor_bales.size() <= 11) {
+			else if (tractor_bales.size() <= 11) 
+			{
 				List<Point> tasks = new ArrayList<Point>();
-				for(int i=0;i<tractor_bales.size();i++) {
+				for(int i=0;i<tractor_bales.size();i++)
+				{
 					tasks.add(tractor_bales.remove(i));
 				}
 				Collections.sort(tasks, pointComparator);
 				taskList.put(tractor.getId(),tasks);
 			}
-			else {
+			else 
+			{
 				Point p = tractor_bales.remove(tractor_bales.size()-1);
-
 				List<Point> tasks = closestTen(p,tractor_bales);
-				for (int i=0;i<tasks.size();i++) {
+				for (int i=0;i<tasks.size();i++) 
+				{
 					tractor_bales.remove(tractor_bales.indexOf(tasks.get(i)));
 				}
 				tasks.add(p);
 				//sort tasks by distance to BARN,
 				Collections.sort(tasks, pointComparator);
-
-
 				taskList.put(tractor.getId(),tasks);
 			}
 		}
-		
+
 		//when tractor is in barn
 		if (tractor.getLocation().equals(BARN)) 
 		{
 			//if at barn and has bale, always unload
-			if (tractor.getHasBale()) {
-						return new Command(CommandType.UNLOAD);
-					}
+			if (tractor.getHasBale()) 
+			{
+				return new Command(CommandType.UNLOAD);
+			}
 			else if (tractor.getAttachedTrailer() != null) //trailer
 			{
 				//if trailer has nothing
-				if(tractor.getAttachedTrailer().getNumBales() == 0) {
+				if(tractor.getAttachedTrailer().getNumBales() == 0) 
+				{
 					/*if (tractor.getHasBale()) {
 						return new Command(CommandType.UNLOAD);
 					}*/
 					//either move if 
-					if ((taskList.get(tractor.getId()).size()) > 0) { //tractor has tasks
+					if ((taskList.get(tractor.getId()).size()) > 0) 
+					{ 
+						//tractor has tasks
 						Point p = taskList.get(tractor.getId()).get(0);
 						//TODO
 						//do a function here, that optimizes p 
 						//closest to barn and one m away from bale
-			
-						Point o = optimalPoint(p); 
-						return Command.createMoveCommand(o);
+
+						//Point o = optimalPoint(p); 
+						return Command.createMoveCommand(p);
 					}
-					else { // tractor has no tasks, just stay at barn, no op
+					else 
+					{ 
+						// tractor has no tasks, just stay at barn, no op
 						return new Command(CommandType.UNSTACK);
 					}
 				} 
-				else { //trailer is attached, trailer has bales
+				else 
+				{ 
+					//trailer is attached, trailer has bales
 					return new Command(CommandType.DETATCH);
 				}
 			}
 			else //no trailer
 			{
-				if(trailer_num.get(tractor.getId()) != 0) { //detached trailer has bales
-					if (tractor.getHasBale()) { //porbabtl wont
+				if(trailer_num.get(tractor.getId()) != 0) 
+				{ 
+					//detached trailer has bales
+					if (tractor.getHasBale()) 
+					{ 
+						//probably won't
 						return new Command(CommandType.UNLOAD);
-					} else {
+					} 
+					else 
+					{
 						trailer_num.put(tractor.getId(),trailer_num.get(tractor.getId())-1); //update hashmap
 						return new Command(CommandType.UNSTACK);
 					}
-				} else { //detached trailer has 0 bales
-					if (tractor.getHasBale()) {
+				} 
+				else 
+				{ 
+					//detached trailer has 0 bales
+					if (tractor.getHasBale()) 
+					{
 						return new Command(CommandType.UNLOAD);//no op
 					}
-					else {
+					else 
+					{
 						return new Command(CommandType.ATTACH);
 					}
 				}
 			}
 		}
 		// There is no bale!
-		else // not at barn
+		// not at barn
+		else
 		{
 			if (tractor.getAttachedTrailer() != null) //trailer attached, only attach with bale in forklift
 			{
 				//nothing in trailer have things to do 
-				if (tractor.getAttachedTrailer().getNumBales() == 0 && taskList.get(tractor.getId()).size() != 0) { //nothing in trailer
+				if (tractor.getAttachedTrailer().getNumBales() == 0 && taskList.get(tractor.getId()).size() != 0) 
+				{
+					//nothing in trailer
 					trailer_map.put(tractor.getId(),tractor.getLocation());
 					return new Command(CommandType.DETATCH);
 				}
-				else { //something in trailer, ready to move (should be 10)  //finished all tasks, ready to move to barn
+				else 
+				{
+					// Something in trailer, ready to move (should be 10)  //finished all tasks, ready to move to barn
 					Point p = new Point(0.0,0.0);
-					trailer_map.put(tractor.getId(),p);
+					trailer_map.put(tractor.getId(), p);
 					return Command.createMoveCommand(BARN);
 				}
-			} 
-			else // no trailer attached
+			}
+			// no trailer attached
+			else 
 			{
 				Point trail_loc = trailer_map.get(tractor.getId()); //location of the trailer
-				
-				if (taskList.get(tractor.getId()).size() > 0) { //something to do in the tasklist
+				if (taskList.get(tractor.getId()).size() > 0) 
+				{ 
+					//something to do in the tasklist
 					//if trailer has less than 10 bales on it 
-					if (trailer_num.get(tractor.getId()) < 10) {
+					if (trailer_num.get(tractor.getId()) < 10) 
+					{
 						//if forklift has bale
-						if (tractor.getHasBale()) {
+						if (tractor.getHasBale()) 
+						{
 							//if tractor is by the trailer 
 							//TODO: or is in range 
-							if (tractor.getLocation().equals(trail_loc)) {
+							if (tractor.getLocation().equals(trail_loc)) 
+							{
 								//updating trailer bales hashmap
 								trailer_num.put(tractor.getId(),trailer_num.get(tractor.getId())+1);
 								return new Command(CommandType.STACK);
 							}
-							else { //move to trailer
-			 
+							else 
+							{ 
+								//move to trailer
 								return Command.createMoveCommand(trail_loc);
 							}
 						} 
 						//forklift doesn't have bale, go to next in task list
-						else { // no bale, need to go to next bale to 
+						else 
+						{ 
+							// no bale, need to go to next bale to 
 							Point p = taskList.get(tractor.getId()).get(0);
 							//Point p = tractor_bales.get(tractor_bales.size()-1);
 							//if you happen to already be there, load 
 							// TODO
 							//OR IF LOCATION IS WITHIN ONE METER
-							if (tractor.getLocation().equals(p)) {
+							if (tractor.getLocation().equals(p)) 
+							{
 								taskList.get(tractor.getId()).remove(0);
 								//tractor_bales.remove(tractor_bales.size()-1);
 								return new Command(CommandType.LOAD);
 							}
-							else {
-							
+							else 
+							{
 								return Command.createMoveCommand(p);
 							}
 						}
 					} 
 					else 
-					{ //trailer is full, tractor must load
+					{ 
+						//trailer is full, tractor must load
 						Point p = taskList.get(tractor.getId()).get(0);
-						if (tractor.getLocation().equals(p)) {
+						if (tractor.getLocation().equals(p)) 
+						{
 							taskList.get(tractor.getId()).remove(0);
 							//tractor_bales.remove(tractor_bales.size()-1);
 							return new Command(CommandType.LOAD);
 						}
-						else {
+						else 
+						{
 							return Command.createMoveCommand(p);
 						}
 					}
 				} 
 				else 
-				{ //tasklist done
+				{ 
+					//tasklist done
 					//move back to where trailer is 
-					if (!tractor.getLocation().equals(trail_loc)) {
+					if (!tractor.getLocation().equals(trail_loc)) 
+					{
 						//Point o = optimalPoint(trail_loc); 
 						return Command.createMoveCommand(trail_loc);
-					} else { //at trailer
+					}
+					//at trailer
+					else 
+					{
 						return new Command(CommandType.ATTACH);
 					}
 				}
