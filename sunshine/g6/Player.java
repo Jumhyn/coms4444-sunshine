@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Comparator;
+import java.util.LinkedList;
 import static java.util.stream.Collectors.*;
 import static java.util.Map.Entry.*;
 
@@ -17,6 +18,10 @@ import sunshine.sim.CommandType;
 import sunshine.sim.Point;
 import sunshine.sim.Trailer;
 import sunshine.g6.Point_In_Poly;
+import sunshine.g6.weiszfeld.WeightedPoint;
+import sunshine.g6.weiszfeld.WeiszfeldAlgorithm;
+import sunshine.g6.weiszfeld.Input;
+import sunshine.g6.weiszfeld.Output;
 
 
 public class Player implements sunshine.sim.Player {
@@ -34,16 +39,210 @@ public class Player implements sunshine.sim.Player {
     private Map<Point, Double> balePointsSorted;
     private HashMap<Point, Double> balePointsForSorting;
     private HashMap<Integer, ArrayList<Point>> segments;
-    private HashMap<Integer, ArrayList<Point>> seg_vertices;
     private HashMap<Integer, Point> eleventhBale;
     private HashMap<Integer, Integer> trailerBales;
     private List<Point> closeBales;
     private List<Point> farBalePoints;
+    private HashMap<Integer, Boolean> segmentVisited;
+
+    List<Point> copy_bales;
+    ArrayList<List<Point>> scan_zones;
+    ArrayList<List<Point>> equizones; 
+    ArrayList<Integer> Tasks;
+    int curr_idx, cutoff_thresh;
+    double dim;
+    Point seed_cluster;
+    ArrayList<Point> centers;
     
 
     public Player() {
         rand = new Random(seed);
     }
+
+    // The following function was taken from g1
+    private static double distance(Point p1, Point p2) {
+        return Math.sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
+    }
+
+
+    // The following function was taken from g1
+    public void partition()
+    {
+        double k=25;
+        scan_zones =  new ArrayList<List<Point>>();
+
+        while((dim*2)/k >=1)
+        {
+            ArrayList<Point> curr_zone = new ArrayList<Point>();
+            for(int i=0;i<copy_bales.size();i++)
+            {
+                Point tmp = copy_bales.get(i);
+
+                if(tmp.x + tmp.y <= k)
+                {
+                    curr_zone.add(tmp);
+                    copy_bales.remove(i);
+                    i--;
+                }
+            }
+
+            scan_zones.add(curr_zone);
+
+           k+=25;
+        }
+
+        int counter =0;
+        for(int i=0;i<scan_zones.size();i++)
+        {
+            for(int j=0;j<scan_zones.get(i).size();j++)
+            {
+                counter++;
+            }
+        }
+        System.out.println("scan_zones.size() = " + scan_zones.size());
+        ArrayList<List<Point>> scan_zones_copy = (ArrayList<List<Point>>)(scan_zones.clone());
+        scan_zones.clear();
+        for (List<Point> lp : scan_zones_copy) {
+            if (lp.size() > 0)
+                scan_zones.add(lp);
+        }
+        int total = 0;
+        for (List<Point> lp : scan_zones) {
+            total += lp.size();
+        }
+        System.out.println("!!! " + total);
+
+        System.out.println("partitioned point count is " + counter);
+
+
+    }
+
+    // The following function was taken from g1
+    public void cluster_points()
+    {
+        List<Point> initial = scan_zones.get(0);
+        Collections.sort(initial,new Comparator <Point>() {
+
+        public int compare(Point o1, Point o2) {
+        return Double.compare(Math.sqrt(Math.pow(o1.x,2)+ Math.pow(o1.y,2)),Math.sqrt(Math.pow(o2.x,2)+ Math.pow(o2.y,2)));
+        }
+        });
+
+        
+        seed_cluster = initial.get(0);
+        equizones = new ArrayList<List<Point>>();
+        int zone_count = (farBalePoints.size() % 11 == 0) ? farBalePoints.size()/11 : farBalePoints.size()/11 + 1;
+
+        int j=0;
+        while( j<scan_zones.size())
+            {
+                ArrayList<Point> curr_cluster = new ArrayList<Point>();
+                
+                while(curr_cluster.size()<11 && j<scan_zones.size() )
+                {
+                    List<Point> curr_zone = scan_zones.get(j);
+                    Collections.sort(curr_zone,new Comparator <Point>() {
+
+                    public int compare(Point o1, Point o2) {
+                    return Double.compare(Math.sqrt(Math.pow(o1.x - seed_cluster.x,2)+ Math.pow(o1.y - seed_cluster.y,2)),Math.sqrt(Math.pow(o2.x-seed_cluster.x,2)+ Math.pow(o2.y-seed_cluster.y,2)));
+                     }
+                    });
+
+                    for(int i=0;i<curr_zone.size() && curr_cluster.size()<11;i++)
+                    {
+                        curr_cluster.add(curr_zone.get(0));
+                        curr_zone.remove(0);
+                    }
+
+                    seed_cluster = curr_cluster.get(curr_cluster.size()-1);
+
+                     scan_zones.set(j,curr_zone);
+                     if(curr_zone.size() == 0)
+                        j++;
+
+                }
+
+                equizones.add(curr_cluster);
+            }
+
+
+            Collections.reverse(equizones);
+
+            int count =0;
+            for(int i=0;i<equizones.size();i++)
+            {
+                for(int z=0;z<equizones.get(i).size();z++)
+                {
+                    Point tmp = equizones.get(i).get(z);
+                    //System.out.print(tmp.x + "," + tmp.y +"\t");
+                    count++;
+                }
+                //System.out.println();
+            }
+                System.out.println("Points printed are " + count);
+            
+    }
+
+    // The following function was taken from g1
+    public Point getClusterCenter(List<Point> cluster)
+    {
+        // We use Weiszfeld Algorithm to find the weighted geometric median
+        List<WeightedPoint> weightedPoints = new LinkedList<WeightedPoint>();
+        for (Point p : cluster) {
+            weightedPoints.add(new WeightedPoint(0.2D, p.x, p.y));
+        }
+        
+        weightedPoints.add(new WeightedPoint(0.5D, 0.0D, 0.0D));
+        
+        Input input = new Input();
+        input.setDimension(2);
+        input.setPoints(weightedPoints);
+        input.setPermissibleError(0.00001);
+        
+        double[] centerCoordinate = WeiszfeldAlgorithm.process(input).getPointCoordinate();
+        
+        Point center = new Point(centerCoordinate[0], centerCoordinate[1]);
+        Point origin = new Point(0.0D, 0.0D);
+        double efficiency = 0.0D; // The time saved from using trailer strategy
+        
+        for (Point p : cluster) {
+            // For each point, we go back to the trailer instead of the origin
+            efficiency += 0.2D * (distance(p, origin) - distance(p, center));
+        }
+        efficiency -= 0.5D * distance(center, origin) // Carrying trailer from and back to the origin
+                + (cluster.size() - 1) * 20.0D // Stacking & unstacking cost
+                + 240.0D; // attaching & detatching cost
+        
+
+        /// hack to not leave behind any bale
+        center.x += 0.001;
+        center.y += 0.001;
+        if (efficiency > 0.0D)
+            return center;
+        else
+            return null;
+        
+        /*
+        Point center = new Point(0,0);
+
+        for(int i=0;i<cluster.size();i++)
+        {
+            center.x += cluster.get(i).x;
+            center.y += cluster.get(i).y;
+        }
+
+        if(cluster.size()>0)
+        {
+            center.x/=cluster.size();
+            center.y/=cluster.size();
+        }
+        
+        return center;
+        */
+    }
+
+
+
     
     public void init(List<Point> bales, int n, double m, double t)
     {
@@ -80,7 +279,105 @@ public class Player implements sunshine.sim.Player {
         // # Divide the grid into pizza slice segments #
         // #############################################
 
-        // divide into segments according to how many tractors there are
+        // divide into segments according to how many bales there are outside of 300m radius
+
+        int num_bales = bales.size();
+        System.out.println("num_bales = " + num_bales);
+
+        farBalePoints = new ArrayList<Point>();
+        int index = 0;
+        for (Point p : balePointsSorted.keySet()) {
+            if (balePointsSorted.get(p) > 300) {
+                break;
+            }
+            index+=1;
+        }
+        int numFarBales = num_bales - index;
+        System.out.println("old index = " + index);
+        System.out.println("numFarBales (before) = " + numFarBales);
+
+        if (numFarBales % 11 != 0) {
+            index = index + (numFarBales % 11);
+        }
+        numFarBales = num_bales - index;
+        System.out.println("new index = " + index);
+        System.out.println("numFarBales = " + numFarBales);
+
+        double num_segs = numFarBales/11;
+        System.out.println("num_segs = " + num_segs);
+
+        farBalePoints = (new ArrayList<Point>(balePointsSorted.keySet())).subList(index, num_bales);
+        System.out.println("num far bales (farBalePoints.size()) = " + farBalePoints.size());
+
+        closeBales = (new ArrayList<Point>(balePointsSorted.keySet())).subList(0, index);
+        System.out.println("num close bales (closeBales.size()) = " + closeBales.size());
+
+        copy_bales = new ArrayList<Point>();
+        for(int i=0;i<farBalePoints.size();i++)
+            copy_bales.add(farBalePoints.get(i));
+
+        curr_idx=0;
+        seed_cluster = new Point(0.0,0.0);
+
+        centers = new ArrayList<Point>(n);
+        for (int i = 0; i < n; i++) {
+            centers.add(null);
+        }
+
+        dim =m;
+
+        partition();
+        cluster_points();
+
+        // segments will map the index of each segment to the list of all bale points in that segment
+        segments = new HashMap<Integer, ArrayList<Point>>();
+        segmentVisited = new HashMap<Integer, Boolean>();
+        for (int i=0; i<num_segs; i++) {
+            segments.put(i, (ArrayList<Point>)(equizones.get(i)));
+            segmentVisited.put(i, false);
+        }
+        System.out.println("segmentVisited: " + segmentVisited);
+        System.out.println("segments.size() = " + segments.size());
+        System.out.println("lengths of lists of points in segments:");
+        for (List<Point> lp : segments.values()) {
+            System.out.println(lp.size());
+        }
+
+        // create the eleventhBale list
+        eleventhBale = new HashMap<Integer, Point>();
+        Point closestP = new Point(0.0, 0.0);
+        double p_dist = 0.0;
+        for (int seg_i : segments.keySet()) {
+            double min_dist = Double.POSITIVE_INFINITY;
+            for (Point p : segments.get(seg_i)) {
+                p_dist = Math.hypot(p.x - 0.0, p.y - 0.0);
+                if (p_dist < min_dist) {
+                    min_dist = p_dist;
+                    closestP = p;
+                }
+            }
+            segments.get(seg_i).remove(closestP);
+            eleventhBale.put(seg_i, closestP);
+        }
+        
+        System.out.println("eleventhBale list:");
+        for (int seg_i : eleventhBale.keySet()) {
+            System.out.println("seg " + seg_i + ": (" + eleventhBale.get(seg_i).x + ", " + eleventhBale.get(seg_i).y + ")");
+        }
+        int count = 0;
+        for (int i : segments.keySet()) {
+            //System.out.println("seg " + i + " number of bales: " + segments.get(i).size());
+            count += segments.get(i).size();
+        }
+        System.out.println("check numFarBales: " + (count + eleventhBale.size()));
+
+
+
+
+
+
+
+        /*>>>// divide into segments according to how many tractors there are
 
         int num_bales = bales.size();
         double num_segs = n;
@@ -152,7 +449,7 @@ public class Player implements sunshine.sim.Player {
         System.out.println("x_inc = " + x_inc);*/
         
         // compute the segment vertices
-        double seg_y_Bbound = m;
+        /*>>double seg_y_Bbound = m;
         double seg_y_Tbound = m-y_inc;
 
         for (int seg_i=0; seg_i<seg_rows; seg_i++) {
@@ -172,7 +469,7 @@ public class Player implements sunshine.sim.Player {
             System.out.println("(" + x_bound + ", " + seg_y_Tbound + ")"); //
             System.out.println("(" + x_bound + ", " + seg_y_Bbound + ")"); //*/
 
-            seg_vertices.put(seg_i, vertex_list);
+            /*>>seg_vertices.put(seg_i, vertex_list);
 
             seg_y_Bbound = seg_y_Tbound;
             seg_y_Tbound -= y_inc;
@@ -199,7 +496,7 @@ public class Player implements sunshine.sim.Player {
             System.out.println("(" + seg_x_Lbound + ", " + y_bound + ")"); //
             System.out.println("(" + seg_x_Rbound + ", " + y_bound + ")"); //*/
 
-            seg_vertices.put(seg_i, vertex_list);
+            /*>>seg_vertices.put(seg_i, vertex_list);
 
             seg_x_Rbound = seg_x_Lbound;
             seg_x_Lbound -= x_inc;
@@ -228,7 +525,7 @@ public class Player implements sunshine.sim.Player {
 
         //System.out.println("DISTRIBUTE");
         // distribute bales equally amongst all segments (randomly right now--eventually based on distance for optimization)
-        for (int i : segments.keySet()) {
+        /*>>for (int i : segments.keySet()) {
             int seg_size = segments.get(i).size();
             //System.out.println("CHECKING seg " + i + " size = " + seg_size);
             if (seg_size < 11) {
@@ -254,7 +551,7 @@ public class Player implements sunshine.sim.Player {
         System.out.println("check numFarBales: " + count);*/
 
         // create the eleventhBale list
-        eleventhBale = new HashMap<Integer, Point>();
+        /*>>eleventhBale = new HashMap<Integer, Point>();
         Point closestP = new Point(0.0, 0.0);
         double p_dist = 0.0;
         for (int seg_i : segments.keySet()) {
@@ -290,7 +587,7 @@ public class Player implements sunshine.sim.Player {
                 System.out.println("points in segment: " + seg.get(j).x + ", " + seg.get(j).y);    
             }
             
-        }
+        }*/
 
     }
 
