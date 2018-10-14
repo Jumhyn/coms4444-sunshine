@@ -120,20 +120,25 @@ public class Player extends sunshine.queuerandom.QueuePlayer {
 
 
 
+        
+
         public void partition()
         {
-            double k=25;
+            double k=25*Math.sqrt(2);
             scan_zones =  new ArrayList<List<Point>>();
 
-            while((dim*2)/k >=1)
+            while((dim*Math.sqrt(2))/k >=0.99D)
             {
                 ArrayList<Point> curr_zone = new ArrayList<Point>();
                 for(int i=0;i<copy_bales.size();i++)
                 {
                     Point tmp = copy_bales.get(i);
 
-                    if(tmp.x + tmp.y <= k)
+                    if(Math.sqrt(Math.pow(tmp.x,2) + Math.pow(tmp.y,2)) <= k)
                     {
+                        double theta = Math.atan2(tmp.y,tmp.x);
+                        tmp.x-= Math.cos(theta);
+                        tmp.y-= Math.sin(theta);
                         curr_zone.add(tmp);
                         copy_bales.remove(i);
                         i--;
@@ -142,7 +147,7 @@ public class Player extends sunshine.queuerandom.QueuePlayer {
 
                 scan_zones.add(curr_zone);
 
-               k+=25;
+               k+=25*Math.sqrt(2);
             }
 
             int counter =0;
@@ -153,7 +158,7 @@ public class Player extends sunshine.queuerandom.QueuePlayer {
                     counter++;
                 }
             }
-
+	    Collections.reverse(scan_zones);
             System.out.println("partitioned point count is " + counter);
 
 
@@ -161,6 +166,8 @@ public class Player extends sunshine.queuerandom.QueuePlayer {
 
         public void cluster_points()
         {
+
+		int first = 0;
              List<Point> initial = scan_zones.get(0);
             Collections.sort(initial,new Comparator <Point>() {
 
@@ -207,7 +214,7 @@ public class Player extends sunshine.queuerandom.QueuePlayer {
                 }
 
 
-                Collections.reverse(equizones);
+                //Collections.reverse(equizones);
 
                 int count =0;
                 for(int i=0;i<equizones.size();i++)
@@ -401,7 +408,11 @@ public ArrayList<Command> getMoreCommands(Tractor tractor)
           toReturn.add(new Command(CommandType.LOAD));
 
           // Return to origin and UNLOAD
-          toReturn.add(Command.createMoveCommand(ORIGIN));
+          Point adj_origin = ORIGIN;
+          double theta = Math.atan2(tractor.getLocation().y,tractor.getLocation().x);
+          adj_origin.x= 0.9*Math.cos(theta);
+          adj_origin.y= 0.9*Math.sin(theta);
+          toReturn.add(Command.createMoveCommand(adj_origin));
           toReturn.add(new Command(CommandType.UNLOAD));
 
         }
@@ -440,7 +451,11 @@ public ArrayList<Command> getMoreCommands(Tractor tractor)
           toReturn.add(new Command(CommandType.ATTACH));
 
           // Go back to origin, UNLOAD forklift and detatch
-          toReturn.add(Command.createMoveCommand(ORIGIN));
+          Point adj_origin = ORIGIN;
+          double theta = Math.atan2(tractor.getLocation().y,tractor.getLocation().x);
+          adj_origin.x= 0.9*Math.cos(theta);
+          adj_origin.y= 0.9*Math.sin(theta);
+          toReturn.add(Command.createMoveCommand(adj_origin));
           toReturn.add(new Command(CommandType.UNLOAD));
           toReturn.add(new Command(CommandType.DETATCH));
 
