@@ -120,11 +120,11 @@ public class Util {
             Double weighted_y = 0.0;
             
             Double scale = 0.0;
-            for (Point x: pointList)
+            for (Point p: pointList)
             {
-                Double raw = distance(x, med_prev);
-                weighted_x += x.x / raw;
-                weighted_y += x.y / raw;
+                Double raw = distance(p, med_prev);
+                weighted_x += p.x / raw;
+                weighted_y += p.y / raw;
                 scale += 1 / raw;
             }
             Double originRaw = distance(origin, med_prev);
