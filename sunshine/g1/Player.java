@@ -86,7 +86,7 @@ public class Player extends sunshine.queuerandom.QueuePlayer {
         partition();
         System.out.println("partition completed");
         cluster_points();
-        getCutoff();
+        //getCutoff();
 
 
     }
