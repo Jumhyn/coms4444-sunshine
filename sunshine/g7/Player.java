@@ -60,14 +60,14 @@ public class Player extends sunshine.queuerandom.QueuePlayer {
     	//stem.out.println(this.near.size());
     	//stem.out.println(this.far.size());
 
-	for (int i = far.size()-1; i<=0; i--) {
-	    if (far.get(i).barnClump) {
-		for ( Point bale : far.get(i) ) {
-		    near.add(bale);
+	for (int i = far.size()-1; i>=0; i--) {
+		    if (far.get(i).barnClump) {
+				for ( Point bale : far.get(i) ) {
+				    near.add(bale);
+				}
+				far.remove(i);
+		    }
 		}
-		far.remove(i);
-	    }
-	}
     }
     
 
