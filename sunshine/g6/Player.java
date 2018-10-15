@@ -291,7 +291,7 @@ public class Player implements sunshine.sim.Player {
         farBalePoints = new ArrayList<Point>();
         int index = 0;
         for (Point p : balePointsSorted.keySet()) {
-            if (balePointsSorted.get(p) > 100) {
+            if (balePointsSorted.get(p) > 50) {
                 break;
             }
             index+=1;
