@@ -18,43 +18,44 @@ import sunshine.g1.weiszfeld.WeiszfeldAlgorithm;
 import sunshine.g1.weiszfeld.Input;
 import sunshine.g1.weiszfeld.Output;
 
-public class Player implements sunshine.sim.Player {
-    // Random seed of 42.
-    private int seed = 42;
-    private Random rand;
+public class Player extends sunshine.queuerandom.QueuePlayer {
+
     private int num_tractors;
     private double time_budget;
     
+    final double HPARAM_TOLERANCE = 0.4D;
+    
     List<Point> bales, copy_bales;
     ArrayList<List<Point>> scan_zones;
-    ArrayList<List<Point>> equizones; 
+    ArrayList<List<Point>> equizones;
     ArrayList<Integer> Tasks;
     int curr_idx, cutoff_thresh;
     double dim;
     Point seed_cluster;
+    final static Point ORIGIN = new Point(0.0d, 0.0d);
 
-    public class trailer{
+    public class Trailer{
         public Point location;
         public Integer numBales;
 
-        public trailer()
+        public Trailer()
         {
-            numBales =0;
-            location = new Point(0,0);
+            numBales = 0;
+            location = ORIGIN;
         }
     }
 
-    ArrayList<trailer> availableTrailers;
+    ArrayList<Trailer> availableTrailers;
     ArrayList<Point> centers;
 
 
     public Player() {
-        rand = new Random(seed);
 
     }
-    
+
     public void init(List<Point> bales, int n, double m, double t)
     {
+        super.init(bales, n, m, t);
         this.bales = bales;
         copy_bales = new ArrayList<Point>();
         for(int i=0;i<bales.size();i++)
@@ -68,15 +69,15 @@ public class Player implements sunshine.sim.Player {
             Tasks.add(-1);
 
         curr_idx=0;
-        seed_cluster = new Point(0.0,0.0);
+        seed_cluster = new Point(0.0D, 0.0D);
 
-        availableTrailers = new ArrayList<trailer>();
+        availableTrailers = new ArrayList<Trailer>();
         for(int i=0;i<n;i++)
         {
-            trailer tmp =new trailer();
+            Trailer tmp =new Trailer();
             availableTrailers.add(tmp);
         }
-        
+
         centers = new ArrayList<Point>(n);
         for (int i = 0; i < n; i++) {
         	centers.add(null);
@@ -85,8 +86,8 @@ public class Player implements sunshine.sim.Player {
         partition();
         System.out.println("partition completed");
         cluster_points();
-        getCutoff();
-        
+        //getCutoff();
+
 
     }
 
@@ -116,20 +117,25 @@ public class Player implements sunshine.sim.Player {
 
 
 
+        
+
         public void partition()
         {
-            double k=25;
+            double k=25*Math.sqrt(2);
             scan_zones =  new ArrayList<List<Point>>();
 
-            while((dim*2)/k >=1)
+            while((dim*Math.sqrt(2))/k >=0.99D)
             {
                 ArrayList<Point> curr_zone = new ArrayList<Point>();
                 for(int i=0;i<copy_bales.size();i++)
                 {
                     Point tmp = copy_bales.get(i);
 
-                    if(tmp.x + tmp.y <= k)
+                    if(Math.sqrt(Math.pow(tmp.x,2) + Math.pow(tmp.y,2)) <= k)
                     {
+                        double theta = Math.atan2(tmp.y,tmp.x);
+                        tmp.x-= Math.cos(theta);
+                        tmp.y-= Math.sin(theta);
                         curr_zone.add(tmp);
                         copy_bales.remove(i);
                         i--;
@@ -138,7 +144,7 @@ public class Player implements sunshine.sim.Player {
 
                 scan_zones.add(curr_zone);
 
-               k+=25;
+               k+=25*Math.sqrt(2);
             }
 
             int counter =0;
@@ -149,7 +155,7 @@ public class Player implements sunshine.sim.Player {
                     counter++;
                 }
             }
-
+	    Collections.reverse(scan_zones);
             System.out.println("partitioned point count is " + counter);
 
 
@@ -157,7 +163,11 @@ public class Player implements sunshine.sim.Player {
 
         public void cluster_points()
         {
-             List<Point> initial = scan_zones.get(0);
+
+		int first = 0;
+	     while(scan_zones.get(first).size()==0) first++;
+
+             List<Point> initial = scan_zones.get(first);
             Collections.sort(initial,new Comparator <Point>() {
 
             public int compare(Point o1, Point o2) {
@@ -165,7 +175,7 @@ public class Player implements sunshine.sim.Player {
             }
             });
 
-            
+
             seed_cluster = initial.get(0);
             equizones = new ArrayList<List<Point>>();
             int zone_count = (bales.size() % 11 == 0) ? bales.size()/11 : bales.size()/11 + 1;
@@ -174,7 +184,7 @@ public class Player implements sunshine.sim.Player {
             while( j<scan_zones.size())
                 {
                     ArrayList<Point> curr_cluster = new ArrayList<Point>();
-                    
+
                     while(curr_cluster.size()<11 && j<scan_zones.size() )
                     {
                         List<Point> curr_zone = scan_zones.get(j);
@@ -203,7 +213,7 @@ public class Player implements sunshine.sim.Player {
                 }
 
 
-                Collections.reverse(equizones);
+                //Collections.reverse(equizones);
 
                 int count =0;
                 for(int i=0;i<equizones.size();i++)
@@ -217,12 +227,12 @@ public class Player implements sunshine.sim.Player {
                     System.out.println();
                 }
                     System.out.println("Points printed are" + count);
-                
+
         }
 
-        
 
-        
+
+
         public void partition_uniform()
         {
             Collections.sort(copy_bales,new Comparator <Point>() {
@@ -287,20 +297,20 @@ public class Player implements sunshine.sim.Player {
         	for (Point p : cluster) {
         		weightedPoints.add(new WeightedPoint(0.2D, p.x, p.y));
         	}
-        	
+
         	weightedPoints.add(new WeightedPoint(0.5D, 0.0D, 0.0D));
-        	
+
             Input input = new Input();
             input.setDimension(2);
             input.setPoints(weightedPoints);
             input.setPermissibleError(0.00001);
-            
+
             double[] centerCoordinate = WeiszfeldAlgorithm.process(input).getPointCoordinate();
-            
+
             Point center = new Point(centerCoordinate[0], centerCoordinate[1]);
-            Point origin = new Point(0.0D, 0.0D);
+            Point origin = ORIGIN;
             double efficiency = 0.0D; // The time saved from using trailer strategy
-            
+
             for (Point p : cluster) {
             	// For each point, we go back to the trailer instead of the origin
             	efficiency += 0.2D * (distance(p, origin) - distance(p, center));
@@ -308,16 +318,16 @@ public class Player implements sunshine.sim.Player {
             efficiency -= 0.5D * distance(center, origin) // Carrying trailer from and back to the origin
             		+ (cluster.size() - 1) * 20.0D // Stacking & unstacking cost
             		+ 240.0D; // attaching & detatching cost
-            
 
-            /// hack to not leave behind any bale
-            center.x += 0.001;
-            center.y += 0.001;
+
+            // hack to not leave behind any bale
+            //center.x += 0.001;
+            //center.y += 0.001;
             if (efficiency > 0.0D)
             	return center;
             else
             	return null;
-            
+
         	/*
             Point center = new Point(0,0);
 
@@ -332,7 +342,7 @@ public class Player implements sunshine.sim.Player {
                 center.x/=cluster.size();
                 center.y/=cluster.size();
             }
-            
+
             return center;
             */
         }
@@ -366,440 +376,123 @@ public class Player implements sunshine.sim.Player {
 
             System.out.println("cutoff thresh is" + cutoff_thresh + "equizones size is " + equizones.size() + " expected error index is" + (equizones.size() - cutoff_thresh));
         }
-    
-    
-    // public Command getCommand(Tractor tractor)
-    // {
-    //     if (tractor.getHasBale())
-    //     {
-    //         if (tractor.getLocation().equals(new Point(0.0, 0.0)))
-    //         {
-    //             return new Command(CommandType.UNLOAD);
-    //         }
-    //         else
-    //         {
-    //             return Command.createMoveCommand(new Point(0.0, 0.0));
-    //         }
-    //     }
-    //     else
-    //     {
-    //         if (tractor.getLocation().equals(new Point(0.0, 0.0)))
-    //         {
-    //             if (rand.nextDouble() > 0.5)
-    //             {
-    //                 if (tractor.getAttachedTrailer() == null)
-    //                 {
-    //                     return new Command(CommandType.ATTACH);
-    //                 }
-    //                 else
-    //                 {
-    //                     return new Command(CommandType.DETATCH);
-    //                 }
-    //             }
-    //             else if (bales.size() > 0)
-    //             {
-    //                 Point p = bales.remove(rand.nextInt(bales.size()));
-    //                 return Command.createMoveCommand(p);
-    //             }
-    //             else
-    //             {
-    //                 return null;
-    //             }
-    //         }
-    //         else
-    //         {
-    //             return new Command(CommandType.LOAD);
-    //         }
-    //     }
-    // }
 
-
-
-//     public Command getCommand(Tractor tractor)
-//     {
-//         int idx = tractor.getId();
-
-//         if(Tasks.get(idx)==-1 && curr_idx<equizones.size())
-//         {
-//             Tasks.set(idx,curr_idx);
-//             List<Point> cluster = equizones.get(curr_idx);
-//             centers.set(idx, getClusterCenter(cluster));
-//             curr_idx++;
-//             if (centers.get(idx) != null) {
-//             	return Command.createMoveCommand(centers.get(idx));
-//             }
-//             else
-//             	return getCommand(tractor);
-//         }
-
-//         else if (tractor.getLocation().equals(new Point(0.0,0.0)))
-//         {
-//             if(tractor.getAttachedTrailer()!=null && (tractor.getHasBale() || availableTrailers.get(idx).numBales>0) )
-//             {
-//                 trailer curr_trailer = new trailer();
-//                 curr_trailer.numBales =availableTrailers.get(idx).numBales;
-//                 curr_trailer.location = tractor.getLocation();
-//                 availableTrailers.set(idx,curr_trailer);
-//                return new Command(CommandType.DETATCH); 
-//             }
-
-//             else if(tractor.getAttachedTrailer()==null && !tractor.getHasBale() && availableTrailers.get(idx).numBales==0 && curr_idx<equizones.size())
-//             {
-//                 trailer curr_trailer = new trailer();
-//                 curr_trailer.numBales = 0 ;
-//                 curr_trailer.location = tractor.getLocation();
-//                 Tasks.set(idx,curr_idx);
-//                 List<Point> cluster = equizones.get(curr_idx);
-//                 curr_idx++;
-//                 centers.set(idx, getClusterCenter(cluster));
-//                 availableTrailers.set(idx, curr_trailer);
-//                 if (centers.get(idx) != null)
-//                 	return new Command(CommandType.ATTACH);
-//                 else {
-//                     curr_trailer.location = new Point(0.001D, 0.001D);
-//                 	return Command.createMoveCommand(curr_trailer.location);
-//                 }
-//             }
-            
-//             else if(tractor.getAttachedTrailer()!=null && !tractor.getHasBale() && availableTrailers.get(idx).numBales==0 && curr_idx<equizones.size() && centers.get(idx)!=null)
-//             {
-            	
-//                 return Command.createMoveCommand(centers.get(idx));
-//             }
-
-//             else if (tractor.getAttachedTrailer()==null && tractor.getHasBale())
-//             {
-//                 return new Command(CommandType.UNLOAD);
-//             }
-
-
-//             else if (tractor.getAttachedTrailer()== null  && availableTrailers.get(idx).numBales>0 && !tractor.getHasBale())
-//             {
-//                 trailer curr_trailer = new trailer();
-//                 curr_trailer.numBales = availableTrailers.get(idx).numBales - 1;
-//                 curr_trailer.location = availableTrailers.get(idx).location;
-//                 availableTrailers.set(idx,curr_trailer);
-//                 return new Command(CommandType.UNSTACK);
-//             }
-//             else
-//             {
-//                 System.out.println("------------------------sending null commands. this should not happen!!!!!----------------------------");
-//                 return null;
-//             }
-
-//         }
-
-//         else if (tractor.getAttachedTrailer()!=null && availableTrailers.get(idx).numBales==0 && !tractor.getHasBale()) /// reached cluster center -> detach
-//         {
-//                trailer curr_trailer = new trailer();
-//                curr_trailer.numBales =0;
-//                curr_trailer.location = tractor.getLocation();
-//                availableTrailers.set(idx,curr_trailer);
-//                return new Command(CommandType.DETATCH); 
-//         }
-
-//         else if(tractor.getAttachedTrailer()==null && tractor.getLocation().equals(availableTrailers.get(idx).location) && !tractor.getHasBale() ) /// move towards next collection point
-//         {
-//             Point p = new Point(0.0,0.0);
-//             if(equizones.get(Tasks.get(idx)).size()>0)
-//             {
-//                 p = equizones.get(Tasks.get(idx)).get(0);
-//                 return Command.createMoveCommand(p);
-//             }
-//             else
-//             {
-//                 trailer curr_trailer = new trailer();
-//                 curr_trailer.numBales = availableTrailers.get(idx).numBales;
-//                 curr_trailer.location = tractor.getLocation();
-//                 availableTrailers.set(idx,curr_trailer);
-//                 if (availableTrailers.get(idx).location.equals(new Point(0.001D, 0.001D)))
-//                 	return Command.createMoveCommand(new Point(0.0,0.0));
-//                 return new Command(CommandType.ATTACH);
-//             }
-//         }
-
-//         else if(tractor.getAttachedTrailer()==null && equizones.get(Tasks.get(idx)).size()>0 && tractor.getLocation().equals(equizones.get(Tasks.get(idx)).get(0)) && !tractor.getHasBale()) // reached next bale pickup
-//         {
-//              //System.out.println("------------------------------- tractor with id " + idx + " trying to pickup bale at " + tractor.getLocation().x + "," + tractor.getLocation().y +"   -----------------------------");
-//             return new Command(CommandType.LOAD);
-//         }
-
-//         else if(tractor.getAttachedTrailer()==null && equizones.get(Tasks.get(idx)).size()>0 && tractor.getLocation().equals(equizones.get(Tasks.get(idx)).get(0)) && tractor.getHasBale()) /// move back to trailer
-//         {
-//             Point p = availableTrailers.get(idx).location;
-//             equizones.get(Tasks.get(idx)).remove(0);
-//             System.out.println("--------------------------trying to take bale back to trailer-----------------------------------------");
-//             return Command.createMoveCommand(p);
-//         }
-
-//         else if(tractor.getAttachedTrailer()==null && tractor.getLocation().equals(availableTrailers.get(idx).location) && tractor.getHasBale() && availableTrailers.get(idx).numBales<10) // stack the bale
-//         {
-//                 trailer curr_trailer = new trailer();
-//                 curr_trailer.numBales = availableTrailers.get(idx).numBales +1;
-//                 curr_trailer.location = availableTrailers.get(idx).location;
-//                 availableTrailers.set(idx,curr_trailer);
-//                 if (availableTrailers.get(idx).location.equals(new Point(0.001D, 0.001D)))
-//                 	return new Command(CommandType.UNLOAD);
-//                 return new Command(CommandType.STACK);
-//         }
-
-//         else if(tractor.getAttachedTrailer()==null && tractor.getLocation().equals(availableTrailers.get(idx).location) && tractor.getHasBale()) // all stacked and has a bale:-> attach
-//         {
-//                 trailer curr_trailer = new trailer();
-//                 curr_trailer.numBales = availableTrailers.get(idx).numBales;
-//                 curr_trailer.location = tractor.getLocation();
-//                 availableTrailers.set(idx,curr_trailer);
-//                 if (availableTrailers.get(idx).location.equals(new Point(0.001D, 0.001D)))
-//                 	return Command.createMoveCommand(new Point(0.0,0.0));
-//                 return new Command(CommandType.ATTACH);
-//         }
-
-//         else if(tractor.getAttachedTrailer()!=null && tractor.getLocation().equals(availableTrailers.get(idx).location)) // filled & attached :-> head home
-//         {
-//                  return Command.createMoveCommand(new Point(0.0,0.0));
-//         }
-
-
-//         // else if (tractor.getHasBale() && tractor.getAttachedTrailer().getNumBales()<10) //trailer has space
-//         // {
-//         //         System.out.println("tractor location is" + tractor.getLocation().x + "," + tractor.getLocation().y);
-//         //         System.out.println("trailer location is "  + tractor.getAttachedTrailer().getLocation().x + " , " + tractor.getAttachedTrailer().getLocation().y);
-//         //         return new Command(CommandType.STACK);
-//         // }
-
-//         // else if(tractor.getHasBale())   ////all 11 collected
-//         // {
-//         //     return Command.createMoveCommand(new Point(0.0,0.0));
-//         // }
-
-
-//         // else if (equizones.get(Tasks.get(idx)).size()>0) /// move to next bale
-//         // {
-//         //     Point p = new Point(0.0,0.0);
-//         //     if(equizones.get(Tasks.get(idx)).size()>0)
-//         //     p = equizones.get(Tasks.get(idx)).get(0);
-//         //     return Command.createMoveCommand(p);
-//         // }
-
-//         // else /// all done return home
-//         // {
-//         //    return Command.createMoveCommand(new Point(0.0,0.0));
-//         // }
-//         else
-//            {
-//             System.out.println("------------------------sending null commands. this should not happen!!!!!----------------------------");
-//              return null;
-//            }
-        
-//     }
 
     private static double distance(Point p1, Point p2) {
     	return Math.sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
     }
+    
+    /**
+     * Find the angle between a point p and origin at center
+     * @param center the center of the angle
+     * @param p any point
+     * @return the angle value in rad
+     */
+    private static double getAngle(Point center, Point p) {
+    	double angleOrigin = Math.atan2(center.y, center.x);
+    	double angleP = Math.atan2(center.y - p.y, center.x - p.x);
+    	return (angleP - angleOrigin < 0.0D) ? angleP - angleOrigin + 2 * Math.PI : angleP - angleOrigin;
+    }
+    
+    private static Point travelToWithTolerance(Point p1, Point p2, double k) {
+    	if (p1.equals(p2))
+    		return p1;
+    	double d = distance(p1, p2);
+    	return new Point(k / d * p1.x + (d - k) / d * p2.x,
+    					 k / d * p1.y + (d - k) / d * p2.y);
+    }
 
-
-// }
-
-
-
-public Command getCommand(Tractor tractor)
+@Override
+public ArrayList<Command> getMoreCommands(Tractor tractor)
     {
         int idx = tractor.getId();
 
-        if(Tasks.get(idx)==-1 && curr_idx<equizones.size()-cutoff_thresh)
-        {
-            Tasks.set(idx,curr_idx);
-            List<Point> cluster = equizones.get(curr_idx);
-            Point center = getClusterCenter(cluster);
+        // Initialize list of commands to return
+        ArrayList<Command> toReturn = new ArrayList<Command>();
+        if (curr_idx >= equizones.size())
+          return null;
+        List<Point> cluster = equizones.get(curr_idx);
+        Point center = getClusterCenter(cluster);
+        // If we are beneath the threshold
+        // the tractor will switch to greedy mode if trailer strategy is insufficient
+        if(center == null){
+
+          // Individually get furthest bale and LOAD
+          Point bale_location = equizones.get(curr_idx).get(0);
+          equizones.get(curr_idx).remove(0);
+          if(equizones.get(curr_idx).size() == 0){
             curr_idx++;
-            System.out.println(curr_idx);
-            return Command.createMoveCommand(center);
-        }
+          }
 
-        else if (tractor.getLocation().equals(new Point(0.0,0.0)))
-        {
-            if(tractor.getAttachedTrailer()!=null && (tractor.getHasBale() || availableTrailers.get(idx).numBales>0) )
-            {
-                trailer curr_trailer = new trailer();
-                curr_trailer.numBales =availableTrailers.get(idx).numBales;
-                curr_trailer.location = tractor.getLocation();
-                availableTrailers.set(idx,curr_trailer);
-               return new Command(CommandType.DETATCH); 
-            }
+          toReturn.add(Command.createMoveCommand(travelToWithTolerance(ORIGIN, bale_location, HPARAM_TOLERANCE)));
+          toReturn.add(new Command(CommandType.LOAD));
 
-            else if(tractor.getAttachedTrailer()==null && !tractor.getHasBale() && availableTrailers.get(idx).numBales==0 && curr_idx<equizones.size()-cutoff_thresh)
-            {
-                trailer curr_trailer = new trailer();
-                curr_trailer.numBales = 0 ;
-                curr_trailer.location = tractor.getLocation();
-                availableTrailers.set(idx,curr_trailer);
-                return new Command(CommandType.ATTACH);
-            }
-            
-            else if(tractor.getAttachedTrailer()!=null && !tractor.getHasBale() && availableTrailers.get(idx).numBales==0 && curr_idx<equizones.size()-cutoff_thresh)
-            {
-                Tasks.set(idx,curr_idx);
-                List<Point> cluster = equizones.get(curr_idx);
-                Point center = getClusterCenter(cluster);
-                curr_idx++;
-                if(center ==null)
-                System.out.println("error occurs for curr_idx "+curr_idx);
-                return Command.createMoveCommand(center);
-            }
-
-            else if(tractor.getAttachedTrailer()!=null && !tractor.getHasBale() && curr_idx<equizones.size() && curr_idx >= equizones.size()-cutoff_thresh && equizones.get(curr_idx).size()>0)
-            {
-                trailer curr_trailer = new trailer();
-                curr_trailer.numBales =availableTrailers.get(idx).numBales;
-                curr_trailer.location = tractor.getLocation();
-                availableTrailers.set(idx,curr_trailer);
-               return new Command(CommandType.DETATCH);
-            }
-
-            else if(tractor.getAttachedTrailer() == null && !tractor.getHasBale() && curr_idx<equizones.size() && curr_idx >= equizones.size()-cutoff_thresh && equizones.get(curr_idx).size()>0)
-            {
-                Point bale_location = equizones.get(curr_idx).get(0);
-                equizones.get(curr_idx).remove(0);
-
-                if(equizones.get(curr_idx).size()==0)
-                    curr_idx++;
-
-                return Command.createMoveCommand(bale_location);
-
-            }
-
-            else if (tractor.getAttachedTrailer()==null && tractor.getHasBale())
-            {
-                return new Command(CommandType.UNLOAD);
-            }
-
-
-            else if (tractor.getAttachedTrailer()== null  && availableTrailers.get(idx).numBales>0 && !tractor.getHasBale())
-            {
-                trailer curr_trailer = new trailer();
-                curr_trailer.numBales = availableTrailers.get(idx).numBales - 1;
-                curr_trailer.location = availableTrailers.get(idx).location;
-                availableTrailers.set(idx,curr_trailer);
-                return new Command(CommandType.UNSTACK);
-            }
-            else
-            {
-                System.out.println("------------------------sending null commands. this should not happen!!!!!----------------------------");
-                return null;
-            }
+          // Return to origin and UNLOAD
+          Point adj_origin = ORIGIN;
+          double theta = Math.atan2(tractor.getLocation().y,tractor.getLocation().x);
+          adj_origin.x= 0.9*Math.cos(theta);
+          adj_origin.y= 0.9*Math.sin(theta);
+          toReturn.add(Command.createMoveCommand(adj_origin));
+          toReturn.add(new Command(CommandType.UNLOAD));
 
         }
+        else{
+          // Attach if not attached
+          if(tractor.getAttachedTrailer() == null){
+            toReturn.add(new Command(CommandType.ATTACH));
+          }
 
-        else if (tractor.getAttachedTrailer()!=null && availableTrailers.get(idx).numBales==0 && !tractor.getHasBale()) /// reached cluster center -> detach
-        {
-                trailer curr_trailer = new trailer();
-                curr_trailer.numBales =0;
-                curr_trailer.location = tractor.getLocation();
-                availableTrailers.set(idx,curr_trailer);
-               return new Command(CommandType.DETATCH); 
+          // Go to furthest cluster center, and detatch
+          int last_idx = curr_idx;
+          curr_idx++;
+          toReturn.add(Command.createMoveCommand(center));
+          toReturn.add(new Command(CommandType.DETATCH));
+
+          // Collect 10 bales and stack
+          int balesRemain = equizones.get(last_idx).size();
+          // Sort each equizone by angle
+          Collections.sort(equizones.get(last_idx), (Comparator<Point>) (p1, p2) -> {
+        	  return Double.compare(getAngle(center, p1), getAngle(center, p2));
+          });
+          int numUnstack = balesRemain;
+          while(balesRemain > 1){
+            Point next_bale = equizones.get(last_idx).get(0);
+            equizones.get(last_idx).remove(0);
+            balesRemain--;
+
+            //toReturn.add(Command.createMoveCommand(next_bale));
+            toReturn.add(Command.createMoveCommand(travelToWithTolerance(center, next_bale, HPARAM_TOLERANCE)));
+            toReturn.add(new Command(CommandType.LOAD));
+            //toReturn.add(Command.createMoveCommand(center));
+            toReturn.add(Command.createMoveCommand(travelToWithTolerance(next_bale, center, HPARAM_TOLERANCE)));
+            toReturn.add(new Command(CommandType.STACK));
+          }
+          // Get last bale on forklift and attach
+          Point next_bale = equizones.get(last_idx).get(0);
+          equizones.get(last_idx).remove(0);
+
+          toReturn.add(Command.createMoveCommand(travelToWithTolerance(center, next_bale, HPARAM_TOLERANCE)));
+          toReturn.add(new Command(CommandType.LOAD));
+          toReturn.add(Command.createMoveCommand(travelToWithTolerance(next_bale, center, HPARAM_TOLERANCE)));
+          toReturn.add(new Command(CommandType.ATTACH));
+
+          // Go back to origin, UNLOAD forklift and detatch
+          Point adj_origin = ORIGIN;
+          double theta = Math.atan2(tractor.getLocation().y,tractor.getLocation().x);
+          adj_origin.x= 0.9*Math.cos(theta);
+          adj_origin.y= 0.9*Math.sin(theta);
+          toReturn.add(Command.createMoveCommand(adj_origin));
+          toReturn.add(new Command(CommandType.UNLOAD));
+          toReturn.add(new Command(CommandType.DETATCH));
+
+          // UNSTACK the rest of the bales
+          for(int i = 0; i<numUnstack-1; i++){
+            toReturn.add(new Command(CommandType.UNSTACK));
+            toReturn.add(new Command(CommandType.UNLOAD));
+          }
+
         }
-
-        else if(tractor.getAttachedTrailer()==null && tractor.getLocation().equals(availableTrailers.get(idx).location) && !tractor.getHasBale() ) /// move towards next collection point
-        {
-            Point p = new Point(0.0,0.0);
-            if(equizones.get(Tasks.get(idx)).size()>0)
-            {
-                p = equizones.get(Tasks.get(idx)).get(0);
-                return Command.createMoveCommand(p);
-            }
-            else
-            {
-                trailer curr_trailer = new trailer();
-                curr_trailer.numBales = availableTrailers.get(idx).numBales;
-                curr_trailer.location = tractor.getLocation();
-                availableTrailers.set(idx,curr_trailer);
-                return new Command(CommandType.ATTACH);
-            }
-        }
-
-        else if(tractor.getAttachedTrailer()==null && Tasks.get(idx) !=-1 && equizones.get(Tasks.get(idx)).size()>0 && tractor.getLocation().equals(equizones.get(Tasks.get(idx)).get(0)) && !tractor.getHasBale()) // reached next bale pickup
-        {
-             //System.out.println("------------------------------- tractor with id " + idx + " trying to pickup bale at " + tractor.getLocation().x + "," + tractor.getLocation().y +"   -----------------------------");
-            return new Command(CommandType.LOAD);
-        }
-
-        else if(tractor.getAttachedTrailer()==null && Tasks.get(idx) !=-1 && equizones.get(Tasks.get(idx)).size()>0 && tractor.getLocation().equals(equizones.get(Tasks.get(idx)).get(0)) && tractor.getHasBale()) /// move back to trailer
-        {
-            Point p = availableTrailers.get(idx).location;
-            equizones.get(Tasks.get(idx)).remove(0);
-            System.out.println("--------------------------trying to take bale back to trailer-----------------------------------------");
-            return Command.createMoveCommand(p);
-        }
-
-        else if(tractor.getAttachedTrailer()==null && tractor.getLocation().equals(availableTrailers.get(idx).location) && tractor.getHasBale() && availableTrailers.get(idx).numBales<10) // stack the bale
-        {
-                trailer curr_trailer = new trailer();
-                curr_trailer.numBales = availableTrailers.get(idx).numBales +1;
-                curr_trailer.location = availableTrailers.get(idx).location;
-                availableTrailers.set(idx,curr_trailer);
-                return new Command(CommandType.STACK);
-        }
-
-        else if(tractor.getAttachedTrailer()==null && tractor.getLocation().equals(availableTrailers.get(idx).location) && tractor.getHasBale()) // all stacked and has a bale:-> attach
-        {
-                trailer curr_trailer = new trailer();
-                curr_trailer.numBales = availableTrailers.get(idx).numBales;
-                curr_trailer.location = tractor.getLocation();
-                availableTrailers.set(idx,curr_trailer);
-                return new Command(CommandType.ATTACH);
-        }
-
-        else if(tractor.getAttachedTrailer()!=null && tractor.getLocation().equals(availableTrailers.get(idx).location)) // filled & attached :-> head home
-        {
-                 return Command.createMoveCommand(new Point(0.0,0.0));
-        }
-
-        else if(tractor.getAttachedTrailer()==null && !tractor.getHasBale())
-        {
-            return new Command(CommandType.LOAD);
-        }
-
-        else if(tractor.getAttachedTrailer()==null && tractor.getHasBale())
-        {
-            return Command.createMoveCommand(new Point(0.0,0.0));
-        }
-
-
-        // else if (tractor.getHasBale() && tractor.getAttachedTrailer().getNumBales()<10) //trailer has space
-        // {
-        //         System.out.println("tractor location is" + tractor.getLocation().x + "," + tractor.getLocation().y);
-        //         System.out.println("trailer location is "  + tractor.getAttachedTrailer().getLocation().x + " , " + tractor.getAttachedTrailer().getLocation().y);
-        //         return new Command(CommandType.STACK);
-        // }
-
-        // else if(tractor.getHasBale())   ////all 11 collected
-        // {
-        //     return Command.createMoveCommand(new Point(0.0,0.0));
-        // }
-
-
-        // else if (equizones.get(Tasks.get(idx)).size()>0) /// move to next bale
-        // {
-        //     Point p = new Point(0.0,0.0);
-        //     if(equizones.get(Tasks.get(idx)).size()>0)
-        //     p = equizones.get(Tasks.get(idx)).get(0);
-        //     return Command.createMoveCommand(p);
-        // }
-
-        // else /// all done return home
-        // {
-        //    return Command.createMoveCommand(new Point(0.0,0.0));
-        // }
-        else
-           {
-            System.out.println("------------------------sending null commands. this should not happen!!!!!----------------------------");
-             return null;
-           }
-        
-    }
-
-
-
-
+        // Return list of commands
+        return toReturn;
+      }
 }
-
