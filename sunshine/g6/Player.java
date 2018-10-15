@@ -40,7 +40,7 @@ public class Player implements sunshine.sim.Player {
     private HashMap<Point, Double> balePointsForSorting;
     private HashMap<Integer, ArrayList<Point>> segments;
     private HashMap<Integer, Point> eleventhBale;
-    private HashMap<Integer, Integer> trailerBales;
+    private HashMap<Integer, Integer> trailerBales = new HashMap<Integer, Integer>();  
     private List<Point> closeBales;
     private List<Point> farBalePoints;
     private HashMap<Integer, Boolean> segmentVisited;
@@ -53,7 +53,9 @@ public class Player implements sunshine.sim.Player {
     double dim;
     Point seed_cluster;
     ArrayList<Point> centers;
-    
+
+    Integer secondBatch;
+    int numTrailers;
 
     public Player() {
         rand = new Random(seed);
@@ -247,6 +249,8 @@ public class Player implements sunshine.sim.Player {
     public void init(List<Point> bales, int n, double m, double t)
     {
         this.bales = bales;
+        this.secondBatch = 0;
+        this.numTrailers = n;
 
         // ##############################################################
         // # Sort the bale points according to distance from the origin #
@@ -339,9 +343,9 @@ public class Player implements sunshine.sim.Player {
         // System.out.println("segmentVisited: " + segmentVisited);
         // System.out.println("segments.size() = " + segments.size());
         // System.out.println("lengths of lists of points in segments:");
-        for (List<Point> lp : segments.values()) {
-            System.out.println(lp.size());
-        }
+        // for (List<Point> lp : segments.values()) {
+        //     System.out.println(lp.size());
+        // }
 
         // create the eleventhBale list
         eleventhBale = new HashMap<Integer, Point>();
@@ -370,7 +374,28 @@ public class Player implements sunshine.sim.Player {
             count += segments.get(i).size();
         }
         // System.out.println("check numFarBales: " + (count + eleventhBale.size()));
+
+        System.out.println("size of segments:" + segments.size());
+
+        // add tractors into away_tractor and close_tractor list
+        for (int i = 0; i < n; i++) {
+            if (i < segments.size()) {
+                away_tractor.add(i);
+                tractor_mode.put(i, 1);
+            }
+            else {
+                close_tractor.add(i);
+                tractor_mode.put(i, 0);
+            }
+        }
+
+        // System.out.println("away_tractors: " + away_tractor.size());
+        // System.out.println("close_tractors: " + close_tractor.size());
+
     }
+
+    int secondBatchStart = 0;
+    int multiplier = 1;
 
     public Command getCommand(Tractor tractor){
 
@@ -378,7 +403,9 @@ public class Player implements sunshine.sim.Player {
         int randNum = 0;
         Point p;
         int segmentId = 0;
-        int secondBatchStart = 0;
+        
+        int segmentsLeft = 0;
+
         
         
         switch(tractor_mode.get(id))
@@ -405,6 +432,7 @@ public class Player implements sunshine.sim.Player {
                 tractor_mode.put(id,2);
                 trailerBales.put(id,0);  // this point has 0 bales initially
                 dropPoint = eleventhBale.get(id);
+                segmentVisited.put(id, true);
                 return Command.createMoveCommand(dropPoint); //go to the point that drops trailer
             }
 
@@ -415,7 +443,8 @@ public class Player implements sunshine.sim.Player {
             //go to location of bale in far area
             case 3:
             tractor_mode.put(id,7);
-            randNum = rand.nextInt(segments.get(segmentId).size());
+            System.out.println("error:" + (id+secondBatchStart));
+            randNum = rand.nextInt(segments.get(id+secondBatchStart).size());
             p = segments.get(id+secondBatchStart).remove(randNum);
             bales.remove(randNum);
             farBalePoints.remove(randNum);
@@ -430,6 +459,15 @@ public class Player implements sunshine.sim.Player {
             case 5:
             tractor_mode.put(id,6);
             // System.out.println("checking if tractor " + id + " has bale at case 5: " + tractor.getHasBale());
+            System.out.println("case 5 id: " + (id+secondBatchStart));
+
+            System.out.println("all keys in trailerBales");
+            for (Map.Entry<Integer, Boolean> entry : segmentVisited.entrySet()) {
+                Integer key = entry.getKey();
+                Boolean value = entry.getValue();
+                System.out.println("segment no:" + key + " - " + value);
+            }
+
             trailerBales.put(id+secondBatchStart, trailerBales.get(id+secondBatchStart)+1);    
             return new Command(CommandType.STACK);    
 
@@ -474,12 +512,14 @@ public class Player implements sunshine.sim.Player {
             }
             else{
                 tractor_mode.put(id,13);
-                return null;
+                return new Command(CommandType.DETATCH);
             }
 
             case 10:
             if (trailerBales.get(id) > 0) {
                 tractor_mode.put(id, 11);
+                System.out.println("secondBatchStart value in case 10: " + secondBatchStart);
+                System.out.println("id+secondBatchStart value in case 10: " + (id+secondBatchStart));
                 trailerBales.put(id+secondBatchStart, trailerBales.get(id+secondBatchStart) - 1);
                 return new Command(CommandType.UNSTACK);
             }
@@ -498,21 +538,42 @@ public class Player implements sunshine.sim.Player {
             tractor_mode.put(id,8);
             return new Command(CommandType.ATTACH);
             
-            //detect after the first batch of trailers backing to origin, do there still has segments
+            //detect after the first batch of trailers returned to origin, are there still has segments
             //secondBatchStart initialized to be 0
-            case 13:      
-            for(int i=away_tractor.size()+secondBatchStart-1;i<segments.size();i++)
-            {
-                //if still has segment unvisited
-                if (segmentVisited.get(i)==false){
-                    secondBatchStart = i;
-                    tractor_mode.put(id,14);
-                    return new Command(CommandType.DETATCH);
+            case 13:  
+            // multiplier = 0;
+            System.out.println("all segment booleans:");
+            for (Map.Entry<Integer, Boolean> entry : segmentVisited.entrySet()) {
+                Integer key = entry.getKey();
+                Boolean value = entry.getValue();
+                System.out.println("segment no:" + key + " - " + value);
+                if (value == false) {
+                    segmentsLeft++;
                 }
             }
-            //if all segment visited
+            System.out.println("segmentsLeft: " + segmentsLeft);
+            System.out.println("multipler: " + multiplier);
+            System.out.println("secondBatch: " + secondBatch);
+            for(int i=away_tractor.size()+secondBatchStart - 1; i<segments.size(); i++)
+            {   
+                //if still has segment unvisited
+                if (segmentVisited.get(i)==false){
+                    if (multiplier % numTrailers == 0) {
+                        secondBatch = secondBatch + numTrailers;
+                    }
+
+                    secondBatchStart = secondBatch;
+                    multiplier++;
+
+                    System.out.println("secondBatchStart: " + secondBatchStart);
+
+                    tractor_mode.put(id,14);
+                    return new Command(CommandType.UNSTACK);
+                }
+            }
+            //if all segments visited
             tractor_mode.put(id,10);
-            return new Command(CommandType.DETATCH);
+            return new Command(CommandType.UNSTACK);
 
             // still has segments unvisited
             //here's some problme, the number of trailerBales is when secondBatchstart=0,but it is already updated
@@ -530,15 +591,23 @@ public class Player implements sunshine.sim.Player {
             case 15:
             tractor_mode.put(id,14);
             return new Command(CommandType.UNLOAD);
-            //when at origin, attact again
+            //when at origin, attach again
             case 16:
             tractor_mode.put(id,17);
             return new Command(CommandType.ATTACH);
 
             case 17:
+            System.out.println("secondBatchStart value in case 17: " + secondBatchStart);
+            System.out.println("id+secondBatchStart value in case 17: " + (id+secondBatchStart));
             tractor_mode.put(id,2);
             trailerBales.put(id+secondBatchStart,0);  // the second batch, this point has 0 bales initially 
             dropPoint = eleventhBale.get(id+secondBatchStart);
+            segmentVisited.put(id+secondBatchStart, true);
+
+            for (Integer trailerBalesKey : trailerBales.keySet()) {
+                System.out.println(trailerBalesKey);
+            }
+
             return Command.createMoveCommand(dropPoint); //go to the point that drops trailer
 
         }        
