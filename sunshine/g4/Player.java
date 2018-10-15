@@ -20,7 +20,7 @@ public class Player implements sunshine.sim.Player {
 
     private Map<Point, Integer> trailers;
     private Map<Integer, Double> time;
-    private int threshold = 400;
+    private int threshold = 350;
 
     public int b = 0;
 
