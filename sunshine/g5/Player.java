@@ -19,7 +19,7 @@ public class Player implements sunshine.sim.Player {
     private Random rand;
     int CollectBales;
     int CarNum;
-    double length;
+    double len;
     double range;
     int layers;
     List<Point> bales;
@@ -29,6 +29,7 @@ public class Player implements sunshine.sim.Player {
     int[] balesdist;
     int[] CarDist;
     int[] CarRDist;
+    double[] bound;
     MutableTrailer[] tlist;
     int outRangeSize;
     int outRangeSize2;
@@ -65,18 +66,19 @@ public class Player implements sunshine.sim.Player {
         range = 320.0;
         Stcount = 1;
         CarNum  = n ;
+        len = m;
         System.out.println(CarNum);
         outRangeBales = new ArrayList<>();
         inRangeBales = new ArrayList<>();
         tlist = new MutableTrailer[CarNum];
         layers = (int)(Math.sqrt(2)*m/range);
         balesdist = new int[layers];
+        bound = new double[layers];
         degres = new ArrayList<>();
         for(int i=0;i<layers;i++){
             Double d = range*(i+1)>m?m:range*(i+1)/Math.sqrt(2);
-            System.out.println(d);
-            System.out.println(Math.acos(d/(range*(i+1))));
             degres.add(Math.acos(d/(range*(i+1))));
+            bound[i] = range*(i+1);
         }
 
         for(int i=0;i<CarNum ;i++){
@@ -114,7 +116,8 @@ public class Player implements sunshine.sim.Player {
                 min = balesdist[i];
         }
         CarDist = new int[layers];
-        for(int i=0;i<layers;i++) CarDist[i] = (balesdist[i]*(1+(i+1)/4*layers))/min;
+        //for(int i=0;i<layers;i++) CarDist[i] = (balesdist[i]*(1+(i+1)/4*layers))/min;
+        for(int i=0;i<layers;i++) CarDist[i] = balesdist[i]/min;
         map = new HashMap<>();
         CarRDist = new int[layers];
         int index = 0;
@@ -143,8 +146,9 @@ public class Player implements sunshine.sim.Player {
 
     public Command getCommand(Tractor tractor)
     {
-
-        if(Math.abs(tractor.getLocation().x-0)<1e-2 && Math.abs(tractor.getLocation().y-0)<1e-2){
+        Double trax = new Double(tractor.getLocation().x);
+        Double tray = new Double(tractor.getLocation().y);
+        if(trax.equals(0.0) && tray.equals(0.0)){
               if(tractor.getHasBale())  return new Command(CommandType.UNLOAD);
 
               if(Math.abs(tlist[tractor.getId()].getLocation().x-0)<0.001 && Math.abs(tlist[tractor.getId()].getLocation().y-0)<0.001 && tlist[tractor.getId()].getNumBales()>0){
@@ -156,15 +160,102 @@ public class Player implements sunshine.sim.Player {
               if(outRangeSize>0){
                   List<Integer> l = map.get(tractor.getId());
                   Double Degr = degres.get(l.get(0));
-                  if(Math.abs(Degr - Math.PI/4)<1e-5){
+                  if(Math.abs(Degr-Math.PI/4)<1e-5){
                       Double ad = l.get(1)*((Math.PI/2)/CarRDist[l.get(0)]);
-                      tlist[tractor.getId()].location.x = Math.cos(ad) * range*(l.get(0)+1) + 1;
-                      tlist[tractor.getId()].location.y = Math.sin(ad) * range*(l.get(0)+1) + 1;
+                      Double layerbound = range*(l.get(0)+1);
+                      Point cloest = outRangeBales.get(0);
+                      for (Point c : outRangeBales) {
+                          if (c.x * c.x + c.y * c.y  >= layerbound*layerbound) {
+                                  cloest = c;
+                                  break;
+                          }
+                      }
+                      for (Point c : outRangeBales) {
+                          if ((c.x * c.x + c.y * c.y >= layerbound*layerbound)  && (c.x * c.x + c.y * c.y<=cloest.x * cloest.x + cloest.y * cloest.y)) {
+                              cloest = c;
+                          }
+                      }
+                      /*
+                      * Solve function: bale    s*(k^2+2*k*a)*pi/m^2 = 1/3*CarNum*10
+                      * to get k
+                      * */
+                      double dis = Math.sqrt(cloest.x*cloest.x+cloest.y*cloest.y);
+                      double pa_c = 4*10*CarRDist[l.get(0)]*len*len/(2.5*bales.size());
+                      double pa_b  = 2*Math.PI*dis;
+                      double pa_a = Math.PI;
+                      double delta = Math.sqrt(pa_b*pa_b+4*pa_a*pa_c);
+                      double dynamic_adjust = (-pa_b+delta)/(2*pa_a);
+                      if(dis>len || (dis + dynamic_adjust)>len) {
+                          if(dis<=len) {
+                              ad = l.get(1)*((Math.PI/2)/CarRDist[l.get(0)]);
+                              tlist[tractor.getId()].location.x = Math.cos(ad) * (dis);
+                              tlist[tractor.getId()].location.y = Math.sin(ad) * (dis);
+
+                          }else{
+                              Degr = Math.acos(len / dis);
+                              ad = l.get(1) * ((Math.PI / 2 - 2 * Degr) / CarRDist[l.get(0)]);
+                              dis = Math.sqrt(cloest.x * cloest.x + cloest.y * cloest.y);
+                              pa_c = 10 * CarRDist[l.get(0)] * len * len / (2.5 * bales.size());
+                              pa_b = -Math.sqrt(2) * (len - Math.sqrt(dis * dis - len * len));
+                              pa_a = 2;
+                              delta = Math.sqrt(pa_b * pa_b + 4 * pa_a * pa_c);
+                              dynamic_adjust = (-pa_b + delta) / (2 * pa_a);
+                              if ((dis + dynamic_adjust) <= Math.sqrt(2) * len) {
+                                  dis = dis + dynamic_adjust;
+                                  Degr = Math.acos(len / dis);
+                                  ad = l.get(1) * ((Math.PI / 2 - 2 * Degr) / CarRDist[l.get(0)]);
+                                  tlist[tractor.getId()].location.x = Math.cos(Degr + ad) * (dis + dynamic_adjust);
+                                  tlist[tractor.getId()].location.y = Math.sin(Degr + ad) * (dis + dynamic_adjust);
+                              } else {
+                                  dis = dis + 25;
+                                  Degr = Math.acos(len / dis);
+                                  ad = l.get(1) * ((Math.PI / 2 - 2 * Degr) / CarRDist[l.get(0)]);
+                                  tlist[tractor.getId()].location.x = Math.cos(Degr + ad) * (dis);
+                                  tlist[tractor.getId()].location.y = Math.sin(Degr + ad) * (dis);
+                              }
+                          }
+                      }else{
+                          tlist[tractor.getId()].location.x = Math.cos(ad) * (dis + dynamic_adjust) ;
+                          tlist[tractor.getId()].location.y = Math.sin(ad) * (dis + dynamic_adjust) ;
+
+                      }
 
                   }else{
+                      Double layerbound = range*(l.get(0)+1);
+                      Point cloest = outRangeBales.get(0);
+                      for (Point c : outRangeBales) {
+                          if (c.x * c.x + c.y * c.y  >= layerbound*layerbound) {
+                              cloest = c;
+                              break;
+                          }
+                      }
+                      for (Point c : outRangeBales) {
+                          if ((c.x * c.x + c.y * c.y >= layerbound*layerbound)  && (c.x * c.x + c.y * c.y<=cloest.x * cloest.x + cloest.y * cloest.y)) {
+                              cloest = c;
+                          }
+                      }
                       Double ad = l.get(1)*((Math.PI/2-2*Degr)/CarRDist[l.get(0)]);
-                      tlist[tractor.getId()].location.x = Math.cos(Degr+ad) * range*(l.get(0)+1) + 1;
-                      tlist[tractor.getId()].location.y = Math.sin(Degr+ad) * range*(l.get(0)+1) + 1;
+                      double dis = Math.sqrt(cloest.x*cloest.x+cloest.y*cloest.y);
+                      double pa_c = 10*CarRDist[l.get(0)]*len*len/(3*bales.size());
+                      double pa_b = -Math.sqrt(2)*(len-Math.sqrt(dis*dis-len*len));
+                      double pa_a = 2;
+                      double delta = Math.sqrt(pa_b*pa_b+4*pa_a*pa_c);
+                      double dynamic_adjust = (-pa_b+delta)/(2*pa_a);
+                      if ((dis + dynamic_adjust) <= Math.sqrt(2) * len) {
+                          System.out.println(dis + dynamic_adjust+" "+Math.sqrt(2) * len);
+                          dis = dis + dynamic_adjust;
+                          Degr = Math.acos(len / dis);
+                          ad = l.get(1) * ((Math.PI / 2 - 2 * Degr) / CarRDist[l.get(0)]);
+                          tlist[tractor.getId()].location.x = Math.cos(Degr + ad) * (dis + dynamic_adjust);
+                          tlist[tractor.getId()].location.y = Math.sin(Degr + ad) * (dis + dynamic_adjust);
+                      } else {
+                          dis = dis + 25;
+                          Degr = Math.acos(len / dis);
+                          ad = l.get(1) * ((Math.PI / 2 - 2 * Degr) / CarRDist[l.get(0)]);
+                          tlist[tractor.getId()].location.x = Math.cos(Degr + ad) * (dis);
+                          tlist[tractor.getId()].location.y = Math.sin(Degr + ad) * (dis);
+                      }
+
 
                   }
 
@@ -210,13 +301,20 @@ public class Player implements sunshine.sim.Player {
                           return new Command(CommandType.DETATCH);
                       }
                   }else{
+                      if(outRangeBales.size()!=0){
+                          Point p = outRangeBales.get(0);
+                          outRangeBales.remove(p);
+                          tlist[tractor.getId()].location.x = 0 ;
+                          tlist[tractor.getId()].location.y = 0 ;
+                          return Command.createMoveCommand(p);
+                      }
                       return new Command(CommandType.UNSTACK);
 
                   }
               }
 
         }
-        if(Math.abs(tractor.getLocation().x-tlist[tractor.getId()].location.x)<0.003 && Math.abs(tractor.getLocation().y-tlist[tractor.getId()].location.y)<0.003) {
+        if(trax.equals(tlist[tractor.getId()].location.x) && tray.equals(tlist[tractor.getId()].location.y) ) {
             if (tractor.getAttachedTrailer() != null) {
                 if (tlist[tractor.getId()].getNumBales() == 10 || outRangeBales.size() == 0) {
                     Point p = new Point(0, 0);
@@ -228,6 +326,7 @@ public class Player implements sunshine.sim.Player {
 
             } else {
                 if (!tractor.getHasBale()) {
+
                     if (tlist[tractor.getId()].getNumBales() == 10 || outRangeBales.size() == 0) {
                         return new Command(CommandType.ATTACH);
 
@@ -237,25 +336,20 @@ public class Player implements sunshine.sim.Player {
                         for (Point c : outRangeBales) {
                             double x = tlist[tractor.getId()].location.x;
                             double y = tlist[tractor.getId()].location.y;
-                            if (((c.x - x ) * (c.x - x) + (c.y - y) * (c.y -y))< ((cloest.x-x) * (cloest.x-x)+(cloest.y-y)*(cloest.y-y))){
-                                if(c.x*c.x+c.y*c.y>=x*x+y*y){
+                            if (((c.x - x ) * (c.x - x) + (c.y - y) * (c.y -y))<= ((cloest.x-x) * (cloest.x-x)+(cloest.y-y)*(cloest.y-y))){
+                                if(c.x*c.x+c.y*c.y>=bound[map.get(tractor.getId()).get(0)]*bound[map.get(tractor.getId()).get(0)]){
                                     cloest = c;
                                     flag = true;
                                 }
                             }
-
-
                         }
                         if(!flag){
                             for (Point c : outRangeBales) {
                                 double x = tlist[tractor.getId()].location.x;
                                 double y = tlist[tractor.getId()].location.y;
-                                if (((c.x - x ) * (c.x - x) + (c.y - y) * (c.y -y))< ((cloest.x-x) * (cloest.x-x)+(cloest.y-y)*(cloest.y-y))){
+                                if (((c.x - x ) * (c.x - x) + (c.y - y) * (c.y -y))<= ((cloest.x-x) * (cloest.x-x)+(cloest.y-y)*(cloest.y-y))){
                                         cloest = c;
-
                                 }
-
-
                             }
                         }
                         Point p = cloest;
@@ -273,7 +367,7 @@ public class Player implements sunshine.sim.Player {
                 }
             }
         }
-            if (tractor.getLocation().x * tractor.getLocation().x + tractor.getLocation().y * tractor.getLocation().y < range * range) {
+            if (trax * trax + tray * tray < range * range) {
                 if (tractor.getHasBale()) {
                     Point p = new Point(0, 0);
                     return Command.createMoveCommand(p);
