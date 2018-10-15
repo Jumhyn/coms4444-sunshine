@@ -64,10 +64,8 @@ public class RandomAllTrailers {
         Boolean areBalesRem = assignedBales.size() > 0;
         areBalesRem = areBalesRem || havePreemptive;
     
-        // TODO: (attached)
         if (!hb && atOrigin && attached && numBales == 0 && areBalesRem)
         {
-            // TODO: random
             Point p = assignedBales.remove(rand.nextInt(assignedBales.size()));
             preemptive.put(Id, p);
             return Command.createMoveCommand(p);
@@ -86,7 +84,6 @@ public class RandomAllTrailers {
         }
         else if (!hb && !atOrigin && !attached && areBalesRem)
         {
-            // TODO: random
             Point p = assignedBales.remove(rand.nextInt(assignedBales.size()));
             preemptive.put(Id, p);
             return Command.createMoveCommand(p);

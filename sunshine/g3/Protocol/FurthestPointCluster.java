@@ -15,8 +15,8 @@ import sunshine.sim.Trailer;
 import sunshine.g3.Util;
 import sunshine.g3.Util.*;
 
-import sunshine.g3.Protocol.RandomNoTrailers;
-import sunshine.g3.Protocol.CentroidRandomAllTrailers;
+import sunshine.g3.Protocol.NoTrailers;
+import sunshine.g3.Protocol.CentroidAllTrailers;
 
 
 public class FurthestPointCluster {
@@ -29,7 +29,8 @@ public class FurthestPointCluster {
         List<Point> assignedBales = balesAssignments.get(Id).balesLocations;
         Integer protocol = balesAssignments.get(Id).protocol;
 
-        if (assignedBales.size() == 0)
+        //if (assignedBales.size() == 0)
+        if (protocol == -1)
         {
             TwoList two = Util.nearestBales(bales);
             List<Point> proposed = new ArrayList<Point>(two.first);
@@ -45,7 +46,6 @@ public class FurthestPointCluster {
             //    }
             //}
             //bales = two.second;
-            bales = two.second;
             //System.out.println(bales.equals(two.second));
             //System.out.println(bales);
             //System.out.println(bales.size());
@@ -54,14 +54,26 @@ public class FurthestPointCluster {
 
             if (Util.timeWithoutTrailer(proposed) <= Util.timeWithTrailer(proposed))
             {
+                System.out.println("COMMAND: TRACTOR " + Integer.toString(Id) + " CHANGE_PROTOCOL_TO_0");
                 protocol = 0;
+                balesAssignments.put(Id, new BalesProtocol(bales, protocol));
             }
             else
             {
-                protocol = 1;
-            }
+                System.out.print("\nCOMMAND: TRACTOR " + Integer.toString(Id) + " ASSIGNED_TO");
+                for (Point p: two.first)
+                {
+                    String x = Double.toString(p.x);
+                    String y = Double.toString(p.y);
 
-            balesAssignments.put(Id, new BalesProtocol(proposed, protocol));
+                    System.out.print("(" + x + "," + y + ")_");
+                }
+                System.out.print("\n");
+                bales = two.second;
+                protocol = 1;
+                balesAssignments.put(Id, new BalesProtocol(proposed, protocol));
+            }
+            //balesAssignments.put(Id, new BalesProtocol(proposed, protocol));
         }
         return bales;
     }
@@ -94,7 +106,6 @@ public class FurthestPointCluster {
         //    //    }
         //    //}
         //    //bales = two.second;
-        //    bales = two.second;
         //    //System.out.println(bales.equals(two.second));
         //    //System.out.println(bales);
         //    //System.out.println(bales.size());
@@ -115,21 +126,23 @@ public class FurthestPointCluster {
 
         if (protocol == 0)
         {
-            return RandomNoTrailers.getCommand(rand,
-                                               tractor,
-                                               assignedBales,
-                                               pairs,
-                                               preemptive,
-                                               balesAssignments);
+            System.out.println("COMMAND: TRACTOR " + Integer.toString(Id) + " COMMITTING_TO_0");
+            return NoTrailers.getCommand(rand,
+                                         tractor,
+                                         assignedBales,
+                                         pairs,
+                                         preemptive,
+                                         balesAssignments);
         }
         else if (protocol == 1)
         {
-            return CentroidRandomAllTrailers.getCommand(rand,
-                                                tractor,
-                                                assignedBales,
-                                                pairs,
-                                                preemptive,
-                                                balesAssignments);
+            System.out.println("COMMAND: TRACTOR " + Integer.toString(Id) + " COMMITTING_TO_1");
+            return CentroidAllTrailers.getCommand(rand,
+                                                  tractor,
+                                                  assignedBales,
+                                                  pairs,
+                                                  preemptive,
+                                                  balesAssignments);
         }
         return null;
     }
