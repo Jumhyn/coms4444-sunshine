@@ -80,8 +80,8 @@ public class NoTrailers {
         }
         else if (hb && !atOrigin)
         {
-            //return Command.createMoveCommand(origin);
-            return Command.createMoveCommand(Util.shortcut(tracLoc, origin, allBales));
+            return Command.createMoveCommand(originT);
+            //return Command.createMoveCommand(Util.shortcut(tracLoc, origin));
         }
         else if (hb && atOrigin)
         {
