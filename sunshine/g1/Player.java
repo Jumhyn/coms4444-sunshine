@@ -19,12 +19,12 @@ import sunshine.g1.weiszfeld.Input;
 import sunshine.g1.weiszfeld.Output;
 
 public class Player extends sunshine.queuerandom.QueuePlayer {
-    // Random seed of 42.
-    private int seed = 42;
-    private Random rand;
+
     private int num_tractors;
     private double time_budget;
-
+    
+    final double HPARAM_TOLERANCE = 0.4D;
+    
     List<Point> bales, copy_bales;
     ArrayList<List<Point>> scan_zones;
     ArrayList<List<Point>> equizones;
@@ -34,24 +34,22 @@ public class Player extends sunshine.queuerandom.QueuePlayer {
     Point seed_cluster;
     final static Point ORIGIN = new Point(0.0d, 0.0d);
 
-    public class trailer{
+    public class Trailer{
         public Point location;
         public Integer numBales;
 
-        public trailer()
+        public Trailer()
         {
-            numBales =0;
-            location = new Point(0,0);
+            numBales = 0;
+            location = ORIGIN;
         }
     }
 
-    ArrayList<trailer> availableTrailers;
+    ArrayList<Trailer> availableTrailers;
     ArrayList<Point> centers;
-    private boolean[] greedyMode;
 
 
     public Player() {
-        rand = new Random(seed);
 
     }
 
@@ -64,7 +62,6 @@ public class Player extends sunshine.queuerandom.QueuePlayer {
             copy_bales.add(bales.get(i));
 
         num_tractors = n;
-        greedyMode = new boolean[n];
         time_budget = t;
         Tasks = new ArrayList<Integer>();
         dim =m;
@@ -72,12 +69,12 @@ public class Player extends sunshine.queuerandom.QueuePlayer {
             Tasks.add(-1);
 
         curr_idx=0;
-        seed_cluster = new Point(0.0,0.0);
+        seed_cluster = new Point(0.0D, 0.0D);
 
-        availableTrailers = new ArrayList<trailer>();
+        availableTrailers = new ArrayList<Trailer>();
         for(int i=0;i<n;i++)
         {
-            trailer tmp =new trailer();
+            Trailer tmp =new Trailer();
             availableTrailers.add(tmp);
         }
 
@@ -323,9 +320,9 @@ public class Player extends sunshine.queuerandom.QueuePlayer {
             		+ 240.0D; // attaching & detatching cost
 
 
-            /// hack to not leave behind any bale
-            center.x += 0.001;
-            center.y += 0.001;
+            // hack to not leave behind any bale
+            //center.x += 0.001;
+            //center.y += 0.001;
             if (efficiency > 0.0D)
             	return center;
             else
@@ -384,6 +381,26 @@ public class Player extends sunshine.queuerandom.QueuePlayer {
     private static double distance(Point p1, Point p2) {
     	return Math.sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
     }
+    
+    /**
+     * Find the angle between a point p and origin at center
+     * @param center the center of the angle
+     * @param p any point
+     * @return the angle value in rad
+     */
+    private static double getAngle(Point center, Point p) {
+    	double angleOrigin = Math.atan2(center.y, center.x);
+    	double angleP = Math.atan2(center.y - p.y, center.x - p.x);
+    	return (angleP - angleOrigin < 0.0D) ? angleP - angleOrigin + 2 * Math.PI : angleP - angleOrigin;
+    }
+    
+    private static Point travelToWithTolerance(Point p1, Point p2, double k) {
+    	if (p1.equals(p2))
+    		return p1;
+    	double d = distance(p1, p2);
+    	return new Point(k / d * p1.x + (d - k) / d * p2.x,
+    					 k / d * p1.y + (d - k) / d * p2.y);
+    }
 
 @Override
 public ArrayList<Command> getMoreCommands(Tractor tractor)
@@ -397,6 +414,7 @@ public ArrayList<Command> getMoreCommands(Tractor tractor)
         List<Point> cluster = equizones.get(curr_idx);
         Point center = getClusterCenter(cluster);
         // If we are beneath the threshold
+        // the tractor will switch to greedy mode if trailer strategy is insufficient
         if(center == null){
 
           // Individually get furthest bale and LOAD
@@ -406,7 +424,7 @@ public ArrayList<Command> getMoreCommands(Tractor tractor)
             curr_idx++;
           }
 
-          toReturn.add(Command.createMoveCommand(bale_location));
+          toReturn.add(Command.createMoveCommand(travelToWithTolerance(ORIGIN, bale_location, HPARAM_TOLERANCE)));
           toReturn.add(new Command(CommandType.LOAD));
 
           // Return to origin and UNLOAD
@@ -432,24 +450,30 @@ public ArrayList<Command> getMoreCommands(Tractor tractor)
 
           // Collect 10 bales and stack
           int balesRemain = equizones.get(last_idx).size();
+          // Sort each equizone by angle
+          Collections.sort(equizones.get(last_idx), (Comparator<Point>) (p1, p2) -> {
+        	  return Double.compare(getAngle(center, p1), getAngle(center, p2));
+          });
           int numUnstack = balesRemain;
           while(balesRemain > 1){
             Point next_bale = equizones.get(last_idx).get(0);
             equizones.get(last_idx).remove(0);
             balesRemain--;
 
-            toReturn.add(Command.createMoveCommand(next_bale));
+            //toReturn.add(Command.createMoveCommand(next_bale));
+            toReturn.add(Command.createMoveCommand(travelToWithTolerance(center, next_bale, HPARAM_TOLERANCE)));
             toReturn.add(new Command(CommandType.LOAD));
-            toReturn.add(Command.createMoveCommand(center));
+            //toReturn.add(Command.createMoveCommand(center));
+            toReturn.add(Command.createMoveCommand(travelToWithTolerance(next_bale, center, HPARAM_TOLERANCE)));
             toReturn.add(new Command(CommandType.STACK));
           }
           // Get last bale on forklift and attach
           Point next_bale = equizones.get(last_idx).get(0);
           equizones.get(last_idx).remove(0);
 
-          toReturn.add(Command.createMoveCommand(next_bale));
+          toReturn.add(Command.createMoveCommand(travelToWithTolerance(center, next_bale, HPARAM_TOLERANCE)));
           toReturn.add(new Command(CommandType.LOAD));
-          toReturn.add(Command.createMoveCommand(center));
+          toReturn.add(Command.createMoveCommand(travelToWithTolerance(next_bale, center, HPARAM_TOLERANCE)));
           toReturn.add(new Command(CommandType.ATTACH));
 
           // Go back to origin, UNLOAD forklift and detatch
@@ -466,10 +490,7 @@ public ArrayList<Command> getMoreCommands(Tractor tractor)
             toReturn.add(new Command(CommandType.UNSTACK));
             toReturn.add(new Command(CommandType.UNLOAD));
           }
-          // Check if we should switch to greedyMode
-          if(curr_idx > equizones.size()-cutoff_thresh){
-            greedyMode[idx] = true;
-          }
+
         }
         // Return list of commands
         return toReturn;
