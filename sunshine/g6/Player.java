@@ -405,11 +405,8 @@ public class Player implements sunshine.sim.Player {
         int id = tractor.getId();
         int randNum = 0;
         Point p;
-        int segmentId = 0;
-        
+        int segmentId = 0;        
         int segmentsLeft = 0;
-
-        
         
         switch(tractor_mode.get(id))
         {     
@@ -433,9 +430,9 @@ public class Player implements sunshine.sim.Player {
             }
             else { 
                 tractor_mode.put(id,2);
-                trailerBales.put(id,0);  // this point has 0 bales initially
-                dropPoint = eleventhBale.get(id);
-                segmentVisited.put(id, true);
+                trailerBales.put(id+secondBatchStart,0);  // this point has 0 bales initially
+                dropPoint = eleventhBale.get(id+secondBatchStart);
+                segmentVisited.put(id+secondBatchStart, true);
                 return Command.createMoveCommand(dropPoint); //go to the point that drops trailer
             }
 
@@ -604,7 +601,7 @@ public class Player implements sunshine.sim.Player {
             System.out.println("id+secondBatchStart value in case 17: " + (id+secondBatchStart));
             tractor_mode.put(id,2);
             trailerBales.put(id+secondBatchStart,0);  // the second batch, this point has 0 bales initially 
-            dropPoint = eleventhBale.get(id+secondBatchStart);
+            dropPoint = eleventhBale.get(id);
             segmentVisited.put(id+secondBatchStart, true);
 
             for (Integer trailerBalesKey : trailerBales.keySet()) {
