@@ -36,11 +36,13 @@ public class Player implements sunshine.sim.Player {
     Point dropPoint;
 
     // Class members for bale sorting and separating into segments
-    private Map<Point, Double> balePointsSorted;
+    private LinkedList<Integer> dropPointsToDo = new LinkedList<Integer>();
+    private HashMap<Integer, Integer> dropPointPerTractor = new HashMap<Integer, Integer>();
+    private HashMap<Point, Double> balePointsSorted;
     private HashMap<Point, Double> balePointsForSorting;
     private HashMap<Integer, ArrayList<Point>> segments;
     private HashMap<Integer, Point> eleventhBale;
-    private HashMap<Integer, Integer> trailerBales = new HashMap<Integer, Integer>();  
+    private HashMap<Integer, Integer> balesPerLocation = new HashMap<Integer, Integer>();  
     private List<Point> closeBales;
     private List<Point> farBalePoints;
     private HashMap<Integer, Boolean> segmentVisited;
@@ -362,6 +364,7 @@ public class Player implements sunshine.sim.Player {
             }
             segments.get(seg_i).remove(closestP);
             eleventhBale.put(seg_i, closestP);
+            this.dropPointsToDo.add(seg_i);
         }
         
         System.out.println("eleventhBale list:");
@@ -393,7 +396,7 @@ public class Player implements sunshine.sim.Player {
         // System.out.println("close_tractors: " + close_tractor.size());
 
         for (int i=0; i<segments.size(); i++) {
-            trailerBales.put(i, 0);
+            balesPerLocation.put(i, 0);
         }
     }
 
@@ -430,9 +433,21 @@ public class Player implements sunshine.sim.Player {
             }
             else { 
                 tractor_mode.put(id,2);
-                trailerBales.put(id+secondBatchStart,0);  // this point has 0 bales initially
-                dropPoint = eleventhBale.get(id+secondBatchStart);
-                segmentVisited.put(id+secondBatchStart, true);
+                
+                if(dropPointsToDo.size() == 0) {
+                    // We're done!
+                    close_tractor.add(id);
+                    away_tractor.remove(Integer.valueOf(id));
+                    tractor_mode.put(id, 1);
+                    return Command.createMoveCommand(new Point(0,0));
+                }
+
+                // There's still work to do
+                dropPointPerTractor.put(id, dropPointsToDo.pop()); // remember which bale we're working on
+
+                balesPerLocation.put(dropPointPerTractor.get(id),0);  // this point has 0 bales initially
+                dropPoint = eleventhBale.get(dropPointPerTractor.get(id));
+                segmentVisited.put(dropPointPerTractor.get(id), true);
                 return Command.createMoveCommand(dropPoint); //go to the point that drops trailer
             }
 
@@ -443,9 +458,9 @@ public class Player implements sunshine.sim.Player {
             //go to location of bale in far area
             case 3:
             tractor_mode.put(id,7);
-            System.out.println("error:" + (id+secondBatchStart));
-            randNum = rand.nextInt(segments.get(id+secondBatchStart).size());
-            p = segments.get(id+secondBatchStart).remove(randNum);
+            // System.out.println("error:" + (dropPointPerTractor.get(id)));
+            randNum = rand.nextInt(segments.get(dropPointPerTractor.get(id)).size());
+            p = segments.get(dropPointPerTractor.get(id)).remove(randNum);
             bales.remove(randNum);
             farBalePoints.remove(randNum);
             return Command.createMoveCommand(p);
@@ -453,37 +468,37 @@ public class Player implements sunshine.sim.Player {
             //return to the trailer and bales amount at this point +1
             case 4:
             tractor_mode.put(id,5);
-            return Command.createMoveCommand(eleventhBale.get(id+secondBatchStart));
+            return Command.createMoveCommand(eleventhBale.get(dropPointPerTractor.get(id)));
 
             //stack bale into trailer, increment trailer count
             case 5:
             tractor_mode.put(id,6);
             // System.out.println("checking if tractor " + id + " has bale at case 5: " + tractor.getHasBale());
-            System.out.println("case 5 id: " + (id+secondBatchStart));
+            System.out.println("case 5 id: " + (dropPointPerTractor.get(id)));
 
-            System.out.println("all keys in trailerBales");
+            System.out.println("all keys in balesPerLocation");
             for (Map.Entry<Integer, Boolean> entry : segmentVisited.entrySet()) {
                 Integer key = entry.getKey();
                 Boolean value = entry.getValue();
                 System.out.println("segment no:" + key + " - " + value);
             }
 
-            trailerBales.put(id+secondBatchStart, trailerBales.get(id+secondBatchStart)+1);    
+            balesPerLocation.put(dropPointPerTractor.get(id), balesPerLocation.get(dropPointPerTractor.get(id))+1);    
             return new Command(CommandType.STACK);    
 
             case 6:
             // if full, attach
-            if ((trailerBales.get(id+secondBatchStart)>9) || (segments.get(id+secondBatchStart).size() == 0))
+            if ((balesPerLocation.get(dropPointPerTractor.get(id))>9)) // || (segments.get(dropPointPerTractor.get(id)).size() == 0)
             {
                 tractor_mode.put(id,12);
-                segmentVisited.put(id+secondBatchStart,true); 
+                segmentVisited.put(dropPointPerTractor.get(id),true); 
                 return new Command(CommandType.LOAD);
                 // return new Command(CommandType.ATTACH);
             }
             else{   // if not, find more bales
                 tractor_mode.put(id,7);
-                randNum = rand.nextInt(segments.get(id+secondBatchStart).size());
-                p = segments.get(id+secondBatchStart).remove(randNum);
+                randNum = rand.nextInt(segments.get(dropPointPerTractor.get(id)).size());
+                p = segments.get(dropPointPerTractor.get(id)).remove(randNum);
                 bales.remove(randNum);
                 farBalePoints.remove(randNum);
                 return Command.createMoveCommand(p);
@@ -516,11 +531,11 @@ public class Player implements sunshine.sim.Player {
             }
 
             case 10:
-            if (trailerBales.get(id) > 0) {
+            if (balesPerLocation.get(dropPointPerTractor.get(id)) > 0) {
                 tractor_mode.put(id, 11);
                 System.out.println("secondBatchStart value in case 10: " + secondBatchStart);
-                System.out.println("id+secondBatchStart value in case 10: " + (id+secondBatchStart));
-                trailerBales.put(id+secondBatchStart, trailerBales.get(id+secondBatchStart) - 1);
+                System.out.println("dropPointPerTractor.get(id) value in case 10: " + (dropPointPerTractor.get(id)));
+                balesPerLocation.put(dropPointPerTractor.get(id), balesPerLocation.get(dropPointPerTractor.get(id)) - 1);
                 return new Command(CommandType.UNSTACK);
             }
             else {
@@ -539,376 +554,31 @@ public class Player implements sunshine.sim.Player {
             return new Command(CommandType.ATTACH);
             
             //detect after the first batch of trailers returned to origin, are there still has segments
-            //secondBatchStart initialized to be 0
             case 13:  
-            // multiplier = 0;
-            System.out.println("all segment booleans:");
-            for (Map.Entry<Integer, Boolean> entry : segmentVisited.entrySet()) {
-                Integer key = entry.getKey();
-                Boolean value = entry.getValue();
-                System.out.println("segment no:" + key + " - " + value);
-                if (value == false) {
-                    segmentsLeft++;
-                }
-            }
-            System.out.println("segmentsLeft: " + segmentsLeft);
-            System.out.println("multipler: " + multiplier);
-            System.out.println("secondBatch: " + secondBatch);
-            for(int i=away_tractor.size()+secondBatchStart - 1; i<segments.size(); i++)
-            {   
-                //if still has segment unvisited
-                if (segmentVisited.get(i)==false){
-                    if (multiplier % numTrailers == 0) {
-                        secondBatch = secondBatch + numTrailers;
-                    }
-
-                    secondBatchStart = secondBatch;
-                    multiplier++;
-
-                    System.out.println("secondBatchStart: " + secondBatchStart);
-
-                    tractor_mode.put(id,14);
-                    return new Command(CommandType.UNSTACK);
-                }
-            }
-            //if all segments visited
-            tractor_mode.put(id,10);
-            return new Command(CommandType.UNSTACK);
+            // unload everything (up to 11 bales)
+            tractor_mode.put(id,14);
+            return new Command(CommandType.UNLOAD);
 
             // still has segments unvisited
-            //here's some problme, the number of trailerBales is when secondBatchstart=0,but it is already updated
+            //here's some problme, the number of balesPerLocation is when secondBatchstart=0,but it is already updated
             case 14:
-            if (trailerBales.get(id) > 0) {
+            if (balesPerLocation.get(dropPointPerTractor.get(id)) > 0) {
                 tractor_mode.put(id, 15);
-                trailerBales.put(id, trailerBales.get(id) - 1);
+                balesPerLocation.put(dropPointPerTractor.get(id), balesPerLocation.get(dropPointPerTractor.get(id)) - 1);
                 return new Command(CommandType.UNSTACK);
             }
             else {
-                tractor_mode.put(id, 16);
-                return Command.createMoveCommand(new Point(0,0));
+                tractor_mode.put(id, 1);
+                return new Command(CommandType.ATTACH);
             }
             //unload, similar as case 11
             case 15:
             tractor_mode.put(id,14);
             return new Command(CommandType.UNLOAD);
-            //when at origin, attach again
-            case 16:
-            tractor_mode.put(id,17);
-            return new Command(CommandType.ATTACH);
-
-            case 17:
-            System.out.println("secondBatchStart value in case 17: " + secondBatchStart);
-            System.out.println("id+secondBatchStart value in case 17: " + (id+secondBatchStart));
-            tractor_mode.put(id,2);
-            trailerBales.put(id+secondBatchStart,0);  // the second batch, this point has 0 bales initially 
-            dropPoint = eleventhBale.get(id);
-            segmentVisited.put(id+secondBatchStart, true);
-
-            for (Integer trailerBalesKey : trailerBales.keySet()) {
-                System.out.println(trailerBalesKey);
-            }
-
-            return Command.createMoveCommand(dropPoint); //go to the point that drops trailer
+            
 
         }        
         return Command.createMoveCommand(new Point(0,0));
         
     }
-    // public Command getCommand(Tractor tractor){
-
-    //     int id = tractor.getId();
-    //     int randNum = 0;
-    //     Point p;
-    //     int segmentId = 0;
-        
-    //     switch(tractor_mode.get(id))
-    //     {     
-    //         // at 0,0, ready to go do task
-    //         case 1:
-    //         if (close_tractor.contains(id)) {
-    //             tractor_mode.put(id,7);
-    //             if (closeBales.size() > 0) {
-    //                 randNum = closeBales.size() - 1;
-    //                 p = closeBales.remove(randNum);
-    //                 bales.remove(randNum);
-    //                 return Command.createMoveCommand(p);
-    //             }
-    //             // to counter error at the end
-    //             else if (bales.size()!=0 && closeBales.size()==0){
-    //                 // return new Command(CommandType.DETATCH);
-    //                 p = eleventhBale.get(id);
-    //                 return Command.createMoveCommand(p);
-    //             }
-    //             else {
-    //                 return null;
-    //             }
-    //         }
-    //         else { 
-    //             tractor_mode.put(id,2);
-    //             trailerBales.put(id,0);  // this point has 0 bales initially
-    //             dropPoint = eleventhBale.get(id);
-    //             return Command.createMoveCommand(dropPoint); //go to the point that drops trailer
-    //         }
-
-    //         case 2:
-    //         tractor_mode.put(id,3);
-    //         return new Command(CommandType.DETATCH); 
-
-    //         //go to location of bale in far area
-    //         case 3:
-    //         tractor_mode.put(id,7);
-    //         randNum = rand.nextInt(segments.get(segmentId).size());
-
-
-    //         // if (segments.get(segmentId).size() > 0) {
-    //         //     randNum = segments.get(segmentId).size() - 1;
-    //         //     System.out.println(randNum);
-    //         // }
-    //         // else {
-    //         //     segmentId++;
-    //         //     randNum = segments.get(segmentId).size() - 1;    
-    //         // }
-
-    //         p = segments.get(id).remove(randNum);
-    //         bales.remove(randNum);
-    //         farBalePoints.remove(randNum);
-    //         return Command.createMoveCommand(p);
-
-    //         //return to the trailer and bales amount at this point +1
-    //         case 4:
-    //         tractor_mode.put(id,5);
-    //         return Command.createMoveCommand(eleventhBale.get(id));
-
-    //         //stack bale into trailer, increment trailer count
-    //         case 5:
-    //         tractor_mode.put(id,6);
-    //         // System.out.println("checking if tractor " + id + " has bale at case 5: " + tractor.getHasBale());
-    //         trailerBales.put(id, trailerBales.get(id)+1);    
-    //         return new Command(CommandType.STACK);    
-
-    //         case 6:
-    //         // if full, attach
-    //         if ((trailerBales.get(id)>9) || (segments.get(id).size() == 0))
-    //         {
-    //             tractor_mode.put(id,8); 
-    //             segmentVisited.put(id,true); 
-    //             return new Command(CommandType.ATTACH);
-    //         }
-    //         else{   // if not, find more bales
-    //             // System.out.println("checking if tractor has bale at case 6: " + tractor.getHasBale());
-    //             tractor_mode.put(id,7);
-    //             randNum = rand.nextInt(segments.get(id).size());
-    //             p = segments.get(id).remove(randNum);
-    //             bales.remove(randNum);
-    //             farBalePoints.remove(randNum);
-    //             return Command.createMoveCommand(p);
-    //         }
-
-    //         //load
-    //         case 7:
-    //         if (close_tractor.contains(id)) {
-    //             tractor_mode.put(id,8);
-    //             return new Command(CommandType.LOAD);
-    //         }
-    //         else {
-    //             tractor_mode.put(id,4);
-    //             return new Command(CommandType.LOAD);
-    //         }
-            
-        
-    //         // return to origin
-    //         case 8:
-    //         tractor_mode.put(id,9);
-    //         return Command.createMoveCommand(new Point(0,0));
-
-    //         case 9:
-    //         if (close_tractor.contains(id)){
-    //             tractor_mode.put(id,1);
-    //             return new Command(CommandType.UNLOAD);
-    //         }
-    //         else{
-    //             tractor_mode.put(id,10);
-    //             return new Command(CommandType.DETATCH);
-    //         }
-
-    //         case 10:
-    //         if (trailerBales.get(id) > 0) {
-    //             tractor_mode.put(id, 11);
-    //             trailerBales.put(id, trailerBales.get(id) - 1);
-    //             return new Command(CommandType.UNSTACK);
-    //         }
-    //         else {
-    //             tractor_mode.put(id, 1);
-    //             close_tractor.add(id);
-    //             away_tractor.remove(Integer.valueOf(id));
-    //             return Command.createMoveCommand(new Point(0,0));
-    //         }
-
-    //         case 11:
-    //         tractor_mode.put(id,10);
-    //         return new Command(CommandType.UNLOAD);
-
-    //     }        
-    //     return Command.createMoveCommand(new Point(0,0));
-        // switch(tractor_mode.get(id))
-        // {        
-        //     // at 0,0, ready to go do task
-        //     case 0:
-        //     // tractor_mode.put(id,7);
-        //     tractor_mode.put(id,1);
-        //     dropPoint = eleventhBale.get(id);
-        //     trailerBales.put(id,0);
-        //     return Command.createMoveCommand(dropPoint); 
-
-        //     case 1:
-        //     tractor_mode.put(id,2);
-        //     return new Command(CommandType.DETATCH); 
-
-        //     //go to location of bale in far area
-        //     case 2:
-        //     tractor_mode.put(id,3);
-        //     randNum = rand.nextInt(segments.get(id).size());
-        //     p = segments.get(id).remove(randNum);
-        //     bales.remove(randNum);
-        //     return Command.createMoveCommand(p);
-
-        //     case 3:
-        //     if (close_tractor.contains(id)) {
-        //         tractor_mode.put(id,8);
-        //         return new Command(CommandType.LOAD);
-        //     }
-        //     else {
-        //         tractor_mode.put(id,4);
-        //         return new Command(CommandType.LOAD);
-        //     }
-
-        //     //return to the trailer and bales amount at this point +1
-        //     case 4:
-        //     tractor_mode.put(id,5);
-        //     return Command.createMoveCommand(eleventhBale.get(id));
-
-        //     //stack bale into trailer, increment trailer count
-        //     case 5:
-        //     tractor_mode.put(id,6);
-        //     // System.out.println("checking if tractor " + id + " has bale at case 5: " + tractor.getHasBale());
-        //     trailerBales.put(id, trailerBales.get(id)+1);    
-        //     return new Command(CommandType.STACK);    
-
-        //     case 6:
-        //     // if full, attach
-        //     if ((trailerBales.get(id)>9) || (segments.get(id).size() == 0))
-        //     {
-        //         tractor_mode.put(id,8); 
-        //         return new Command(CommandType.ATTACH);
-        //     }
-        //     else{   // if not, find more bales
-        //         // System.out.println("checking if tractor has bale at case 6: " + tractor.getHasBale());
-        //         tractor_mode.put(id,3);
-        //         randNum = rand.nextInt(segments.get(id).size());
-        //         p = segments.get(id).remove(randNum);
-        //         bales.remove(randNum);
-        //         return Command.createMoveCommand(p);
-        //     }
-        
-        //     // return to origin
-        //     case 8:
-        //     tractor_mode.put(id,9);
-        //     return Command.createMoveCommand(new Point(0,0));
-
-        //     case 9:
-        //     if (close_tractor.contains(id)){
-        //         tractor_mode.put(id,1);
-        //         return new Command(CommandType.UNLOAD);
-        //     }
-        //     else{
-        //         tractor_mode.put(id,10);
-        //         return new Command(CommandType.DETATCH);
-        //     }
-
-        //     case 10:
-        //     if (trailerBales.get(id) > 0) {
-        //         tractor_mode.put(id, 11);
-        //         trailerBales.put(id, trailerBales.get(id) - 1);
-        //         return new Command(CommandType.UNSTACK);
-        //     }
-        //     else {
-        //         tractor_mode.put(id, 12);
-        //         close_tractor.add(id);
-        //         away_tractor.remove(Integer.valueOf(id));
-        //         return Command.createMoveCommand(new Point(0,0));
-        //     }
-
-        //     case 11:
-        //     tractor_mode.put(id,10);
-        //     return new Command(CommandType.UNLOAD);
-
-        //     case 12:
-        //         tractor_mode.put(id,3);
-        //         if (segments.get(id).size()!=0){
-        //             randNum = rand.nextInt(segments.get(id).size());
-        //             p = segments.get(id).remove(randNum);
-        //             bales.remove(randNum);
-        //             return Command.createMoveCommand(p);
-        //         }
-        //         else if (bales.size() != 0) {
-        //             randNum = rand.nextInt(closeBales.size());
-        //             p = closeBales.remove(randNum);
-        //             bales.remove(randNum);
-        //             return Command.createMoveCommand(p);
-        //         }
-        //         // to counter error at the end
-        //         else {
-        //             return new Command(CommandType.DETATCH);
-        //         }
-
-        //     }
-                
-        // return Command.createMoveCommand(new Point(0,0));
-    // }
-    
-    
-    // public Command getCommand(Tractor tractor)
-    // {
-    //     if (tractor.getHasBale())
-    //     {
-    //         if (tractor.getLocation().equals(new Point(0.0, 0.0)))
-    //         {
-    //             return new Command(CommandType.UNLOAD);
-    //         }
-    //         else
-    //         {
-    //             return Command.createMoveCommand(new Point(0.0, 0.0));
-    //         }
-    //     }
-    //     else
-    //     {
-    //         if (tractor.getLocation().equals(new Point(0.0, 0.0)))
-    //         {
-    //             if (rand.nextDouble() > 0.5)
-    //             {
-    //                 if (tractor.getAttachedTrailer() == null)
-    //                 {
-    //                     return new Command(CommandType.ATTACH);
-    //                 }
-    //                 else
-    //                 {
-    //                     return new Command(CommandType.DETATCH);
-    //                 }
-    //             }
-    //             else if (bales.size() > 0)
-    //             {
-    //                 Point p = bales.remove(rand.nextInt(bales.size()));
-    //                 return Command.createMoveCommand(p);
-    //             }
-    //             else
-    //             {
-    //                 return null;
-    //             }
-    //         }
-    //         else
-    //         {
-    //             return new Command(CommandType.LOAD);
-    //         }
-    //     }
-    // }
 }
