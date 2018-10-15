@@ -50,15 +50,24 @@ public class Player extends sunshine.queuerandom.QueuePlayer {
         //this.currentClump = new ArrayList<PointClump>();
 
     	Point farthest = this.near.peek();
-    	while (farthest != null && Math.hypot(farthest.x, farthest.y) > 300 /* Thanks Quincy! */ ) {
+    	while (farthest != null && Math.hypot(farthest.x, farthest.y) > 100 /* Thanks Quincy! */ ) {
     		int nTracker = PointUtils.numTracker(farthest, m, bales.size());
     		System.err.println(nTracker);
     		this.far.addAll(splitter.splitUpPoints(PointUtils.pollNElements(this.near, 11*nTracker)));
     		farthest = this.near.peek();
     	}
 
-    	//System.out.println(this.near.size());
-    	//System.out.println(this.far.size());
+    	//stem.out.println(this.near.size());
+    	//stem.out.println(this.far.size());
+
+	for (int i = far.size()-1; i>=0; i--) {
+		    if (far.get(i).barnClump) {
+				for ( Point bale : far.get(i) ) {
+				    near.add(bale);
+				}
+				far.remove(i);
+		    }
+		}
     }
     
 
