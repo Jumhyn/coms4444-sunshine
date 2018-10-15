@@ -251,8 +251,6 @@ public class Player implements sunshine.sim.Player {
     public void init(List<Point> bales, int n, double m, double t)
     {
         this.bales = bales;
-        this.secondBatch = 0;
-        this.numTrailers = n;
 
         // ##############################################################
         // # Sort the bale points according to distance from the origin #
@@ -293,7 +291,7 @@ public class Player implements sunshine.sim.Player {
         farBalePoints = new ArrayList<Point>();
         int index = 0;
         for (Point p : balePointsSorted.keySet()) {
-            if (balePointsSorted.get(p) > 300) {
+            if (balePointsSorted.get(p) > 100) {
                 break;
             }
             index+=1;
@@ -443,7 +441,14 @@ public class Player implements sunshine.sim.Player {
                 }
 
                 // There's still work to do
-                dropPointPerTractor.put(id, dropPointsToDo.pop()); // remember which bale we're working on
+
+                // Pick in order
+                int thisDropPoint = dropPointsToDo.pop();
+
+                // Pick at random
+                // int thisDropPoint = dropPointsToDo.remove(rand.nextInt(dropPointsToDo.size()));
+
+                dropPointPerTractor.put(id, thisDropPoint); // remember which bale we're working on
 
                 balesPerLocation.put(dropPointPerTractor.get(id),0);  // this point has 0 bales initially
                 dropPoint = eleventhBale.get(dropPointPerTractor.get(id));
