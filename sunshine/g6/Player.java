@@ -392,6 +392,9 @@ public class Player implements sunshine.sim.Player {
         // System.out.println("away_tractors: " + away_tractor.size());
         // System.out.println("close_tractors: " + close_tractor.size());
 
+        for (int i=0; i<segments.size(); i++) {
+            trailerBales.put(i, 0);
+        }
     }
 
     int secondBatchStart = 0;
