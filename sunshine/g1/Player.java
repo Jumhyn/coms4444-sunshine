@@ -168,7 +168,9 @@ public class Player extends sunshine.queuerandom.QueuePlayer {
         {
 
 		int first = 0;
-             List<Point> initial = scan_zones.get(0);
+	     while(scan_zones.get(first).size()==0) first++;
+
+             List<Point> initial = scan_zones.get(first);
             Collections.sort(initial,new Comparator <Point>() {
 
             public int compare(Point o1, Point o2) {
