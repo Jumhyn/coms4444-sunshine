@@ -40,6 +40,19 @@ public class Util {
         return nearestPoint;
     }
 
+    public static Double sumTimeTrailer(Point point, List<Point> pointList)
+    {
+        Double sumTime = 0.0;
+        for (Point p: pointList)
+        {
+            Double t = distance(point, p) / 10;
+            sumTime += t;
+        }
+        Double originTime = distance(origin, point);
+        sumTime += originTime / 4;
+        return sumTime;
+    }
+
     public static List<Double> getWeightList(List<Point> pointList)
     {
         List<Double> weightList = new ArrayList<Double>();
@@ -86,33 +99,47 @@ public class Util {
     }
 
     // TODO: weights (2.5 for origin)
-    public static Point weiszfeld(List<Point> pointList)
+    public static Point weiszfeldTrailer(List<Point> pointList)
     {
-        List<Double> weightList = getWeightList(pointList); 
-        Point med_prev = centroid(pointList, weightList);
-        Point med_next = new Point(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
+        //List<Double> weightList = getWeightList(pointList); 
+        Point med_prev = new Point(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY);
+        Point med_next = centroidTrailer(pointList);
 
-        Double improvement = distance(med_prev, med_next);
+        Double dist_prev = Double.POSITIVE_INFINITY;
+        Double dist_next = sumTimeTrailer(med_next, pointList);
+
+        // TODO - testing
+        //System.out.println("Centroid:\t" + "(" + Double.toString(med_next.x) + "," + Double.toString(med_next.y) + ")");
+        //System.out.println("Centroid Time:\t" + Double.toString(dist_next));
 
         // TODO may need to adjust cutoff 
-        while (improvement > 1)
+        while (dist_prev - dist_next > 0.0001)
         {
+            med_prev = med_next;
             Double weighted_x = 0.0;
             Double weighted_y = 0.0;
             
             Double scale = 0.0;
-            for (Point x: pointList)
+            for (Point p: pointList)
             {
-                Double raw = distance(x, med_prev);
-                weighted_x += x.x / raw;
-                weighted_y += x.y / raw;
+                Double raw = distance(p, med_prev);
+                weighted_x += p.x / raw;
+                weighted_y += p.y / raw;
                 scale += 1 / raw;
             }
+            Double originRaw = distance(origin, med_prev);
+            scale += 2.5 / originRaw;
 
             med_next = new Point(weighted_x / scale, weighted_y / scale);
-            improvement = distance(med_prev, med_next);
-            med_prev = med_next;
+            dist_prev = sumTimeTrailer(med_prev, pointList);
+            dist_next = sumTimeTrailer(med_next, pointList);
+
+            //System.out.println("Geometric Med:\t" + "(" + Double.toString(med_next.x) + "," + Double.toString(med_next.y) + ")");
+            //System.out.println(dist_prev - dist_next);
         }
+        //System.out.println("Weiszfeld:\t" + "(" + Double.toString(med_next.x) + "," + Double.toString(med_next.y) + ")");
+        //System.out.println("Weiszfeld time:\t" + Double.toString(sumTimeTrailer(med_next, pointList)));
+
         return med_next;
     }
 
@@ -120,17 +147,30 @@ public class Util {
     // 10 m/s * distance + detach(60) + attach(60) + detach load, unload(10 * 2) 
     public static Double timeWithTrailer(List<Point> pointList) 
     {
+        //Double time_0;
         Double time;
         //Point origin = new Point(0.0, 0.0);
-        Point centroid = Util.centroidTrailer(pointList);
-        //System.out.println(centroid.x + " " + centroid.y);
+        //Point centroid = Util.centroidTrailer(pointList);
+        Point weiszfeld = Util.weiszfeldTrailer(pointList);
+        //Point centroid = Util.centroidTrailer(pointList);
+        //System.out.println("CENTROID:\t" + Double.toString(centroid.x) + "," + Double.toString(centroid.y));
+        //System.out.println("WEISZFELD:\t" + Double.toString(weiszfeld.x) + "," + Double.toString(weiszfeld.y));
         // from origin to centroid
-        time = 2 * Util.distance(centroid, origin)/4 + 60 * 3; // 2 * distance/speed + detach
+        //time_0 = 2 * Util.distance(centroid_0, origin)/4 + 60 * 3; // 2 * distance/speed + detach
+        time = 2 * Util.distance(weiszfeld, origin)/4 + 60 * 3; // 2 * distance/speed + detach
         for (Point p : pointList) {
             // from centroid to point  
-            time += 2 * Util.distance(p, centroid)/4; //
+            //time_0 += 2 * Util.distance(p, centroid_0)/10; //
+            //time_0 += 10 * 4; // load, stack, unstack, unload 
+            time += 2 * Util.distance(p, weiszfeld)/10; //
             time += 10 * 4; // load, stack, unstack, unload 
         }
+        //System.out.println("TIME FOR CENTROID:\t" + Double.toString(time_0));
+        //System.out.println("TIME FOR WEISZFELD:\t" + Double.toString(time));
+        //if (time > time_0)
+        //{
+        //    System.out.println("WOAH, CENTROID BEATS WEISZFELD");
+        //}
         return time;
     }
 
@@ -145,6 +185,7 @@ public class Util {
             time += 2 * Util.distance(p, origin)/10;
             time += 10 * 2; // load, unload 
         }
+        //System.out.println("TIME WITHOUT TRAILER:\t" + Double.toString(time));
         return time;
     }
 
@@ -262,24 +303,6 @@ public class Util {
     }
 
     /*
-    public static void main(String[] args)
-    {
-        Random rand = new Random();
-        List<Point> baleLocations = Harvester.harvest(rand, 100);
-        System.out.println(baleLocations.size());
-
-        Point p = furthestPoint(baleLocations);
-        System.out.println(p.x + " " + p.y);
-
-        TwoList nearestPoints = nearest_Bales(p, baleLocations);
-        System.out.println(nearestPoints.toLoad.size());
-        System.out.println(nearestPoints.toLoad);
-        System.out.println(nearestPoints.other.size());
-        System.out.println(nearestPoints.other);
-    }
-    */
-
-    /*
     public static List<Point> nearest_Bales(Point p, List<Point> hb_locations)
     {
     	//declaring hash map and point id integer variable to keep track of distances
@@ -346,4 +369,115 @@ public class Util {
             this.protocol = p;
         }
     }
+
+    public static void printCommand(Integer Id, String command)
+    {
+        System.out.println("COMMAND: Tractor " + Integer.toString(Id) + " " + command);
+    }
+
+    public static Point trailerOrigin(Integer Id)
+    {
+        Double xy = 1.0 / Math.sqrt(2.0);
+        Double scale = 1.0 - (1.0 / (2 * (Double.valueOf(Id) + 1.0)));
+        xy = xy * scale;
+        return new Point(xy, xy);
+    }
+
+    public static Double step(Double scale, Double coordinate, Double r, Double theta, Integer trig)
+    {
+        if (trig == 0)
+        {
+            return coordinate + (r - scale) * Math.cos(theta);
+        }
+        else
+        {
+            return coordinate + (r - scale) * Math.sin(theta);
+        }
+    }
+
+    public static Point shortcut(Point source, Point dest, List<Point> pointList)
+    {
+        Double dist = distance(source, dest);
+        System.out.println("DISTANCE?:\t" + Double.toString(dist));
+        if (dist <= 1.0)
+        {
+            System.out.println("NOT SAVING ANY DISTANCE");
+            return dest;
+        }
+        else
+        {
+            Double theta = Math.atan2(dest.y - source.y, dest.x - source.x);
+            Double scale = 0.9;
+            //Double scale = 0.0;
+            Double x_new = step(scale, source.x, dist, theta, 0);
+            Double y_new = step(scale, source.y, dist, theta, 1);
+            //Double x_new = source.x + (dist - scale) * Math.cos(theta);
+            //Double y_new = source.y + (dist - scale) * Math.sin(theta);
+            //if (distance(dest, new Point(x_new, y_new)) > 1)
+            //{
+            //    scale = 0.999;
+            //    x_new = step(scale, source.x, dist, theta, 0);
+            //    y_new = step(scale, source.y, dist, theta, 1);
+            //}
+
+            Point sc = new Point(x_new, y_new);
+            Point nearest = nearestPoint(sc, pointList);
+            System.out.println("NEAREST_(" + Double.toString(nearest.x) + "," + Double.toString(nearest.y) + ")");
+            System.out.println("DESIRED_(" + Double.toString(dest.x) + "," + Double.toString(dest.y) + ")");
+            //while (distance(sc, nearest) < distance(sc, dest))
+            while (!nearest.equals(dest))
+            {
+                //System.out.println("step step step");
+                //System.out.println("SHORTCUT:\t" + "(" + Double.toString(sc.x) + "," + Double.toString(sc.y) + ")");
+                //System.out.println("DESIRED:\t" + "(" + Double.toString(dest.x) + "," + Double.toString(dest.y) + ")");
+                //System.out.println("DESIRED DISTANCE:\t" + Double.toString(distance(sc, dest)));
+                //System.out.println("NEAREST:\t" + "(" + Double.toString(nearest.x) + "," + Double.toString(nearest.y) + ")");
+                //System.out.println("NEAREST DISTANCE:\t" + Double.toString(distance(sc, nearest)));
+
+                scale = scale - 0.01;
+                x_new = step(scale, source.x, dist, theta, 0);
+                y_new = step(scale, source.y, dist, theta, 1);
+
+                sc = new Point(x_new, y_new);
+                nearest = nearestPoint(sc, pointList);
+            }
+            return sc;
+        }
+    }
+
+    public static Point shortcut(Point source, Point dest)
+    {
+        Double dist = distance(source, dest);
+        System.out.println("DISTANCE?:\t" + Double.toString(dist));
+        if (dist <= 1.0)
+        {
+            System.out.println("NOT SAVING ANY DISTANCE");
+            return dest;
+        }
+        else
+        {
+            Double theta = Math.atan2(dest.y - source.y, dest.x - source.x);
+            Double scale = .99;
+            //Double scale = 0.0;
+            Double x_new = step(scale, source.x, dist, theta, 0);
+            Double y_new = step(scale, source.y, dist, theta, 1);
+            //Double x_new = source.x + (dist - scale) * Math.cos(theta);
+            //Double y_new = source.y + (dist - scale) * Math.sin(theta);
+            //if (distance(dest, new Point(x_new, y_new)) >= 1)
+            //{
+            //    scale = 0.99;
+            //    x_new = step(scale, source.x, dist, theta, 0);
+            //    y_new = step(scale, source.y, dist, theta, 1);
+            //}
+
+            Point sc = new Point(x_new, y_new);
+            return sc;
+        }
+    }
+
+    public static void main(String[] args)
+    {
+        System.out.println("test");
+    }
+
 }
