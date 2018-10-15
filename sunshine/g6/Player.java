@@ -370,6 +370,28 @@ public class Player implements sunshine.sim.Player {
             count += segments.get(i).size();
         }
         // System.out.println("check numFarBales: " + (count + eleventhBale.size()));
+        int threshold = (segments.size()>=n)?n:segments.size();
+        if(m<300){
+            
+            for(int i=0;i<n;i++){
+                close_tractor.add(i);
+                tractor_mode.put(i,0);
+            }
+        }
+        else{
+            for (int i=0; i<threshold;i++){
+                away_tractor.add(i);    
+                tractor_mode.put(i, 1);
+            }
+            for (int i=threshold;i<n;i++){
+                close_tractor.add(i);
+                tractor_mode.put(i,0);
+            }
+        }
+        trailerBales = new HashMap<Integer, Integer>();
+        for (int i=0; i<threshold; i++) {
+            trailerBales.put(i, 0);
+        }
     }
 
     public Command getCommand(Tractor tractor){
